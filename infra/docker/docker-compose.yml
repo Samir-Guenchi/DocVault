@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dms-postgres
+    environment:
+      POSTGRES_DB: dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../infra/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  documents-service:
+    build:
+      context: ../../services/documents
+      dockerfile: Dockerfile
+    container_name: dms-documents
+    ports:
+      - "8081:8081"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: ../../services/gateway
+      dockerfile: Dockerfile
+    container_name: dms-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      DOCUMENTS_SERVICE_URL: http://documents-service:8081
+      COMMENTS_SERVICE_URL: http://documents-service:8081
+    depends_on:
+      - documents-service
+
+  dms-ui:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: dms-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

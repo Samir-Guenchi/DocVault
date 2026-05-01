@@ -1,0 +1,242 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: dms-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: dms-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: dms-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "9090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: dms-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - dms-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: dms-postgres
+    environment:
+      POSTGRES_DB: dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: dms-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - redis-data:/data
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: dms-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: dms-cluster
+      CASSANDRA_DC: datacenter1
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 512M
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+
+  documents-service:
+    build:
+      context: ../../services/documents
+      dockerfile: Dockerfile
+    container_name: dms-documents-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_DOCUMENTS_UPLOADED: dms.documents.uploaded
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - dms-network
+
+  translator-service:
+    build:
+      context: ../../services/translator
+      dockerfile: Dockerfile
+    container_name: dms-translator-service
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_GROUP_ID: translator-service
+      KAFKA_INPUT_TOPIC: dms.documents.uploaded
+      KAFKA_OUTPUT_TOPIC: dms.documents.translated
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AUTO_OFFSET_RESET: latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - dms-network
+    restart: unless-stopped
+
+  translation-consumer:
+    build:
+      context: ../../services/translation-consumer
+      dockerfile: Dockerfile
+    container_name: dms-translation-consumer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_GROUP_ID: translation-consumer
+      KAFKA_INPUT_TOPIC: dms.documents.translated
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      AUTO_OFFSET_RESET: earliest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - dms-network
+    restart: unless-stopped
+
+  comments-service:
+    build:
+      context: ../../services/comments
+      dockerfile: Dockerfile
+    container_name: dms-comments-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_KEYSPACE: dms
+      CASSANDRA_DC: datacenter1
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    networks:
+      - dms-network
+
+  gateway:
+    build:
+      context: ../../services/gateway
+      dockerfile: Dockerfile
+    container_name: dms-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DOCUMENTS_SERVICE_URL: http://documents-service:8081
+      COMMENTS_SERVICE_URL: http://comments-service:8082
+    depends_on:
+      - documents-service
+      - comments-service
+    networks:
+      - dms-network
+
+  dms-ui:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: dms-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+    networks:
+      - dms-network
+    restart: unless-stopped
+
+networks:
+  dms-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  cassandra-data:
