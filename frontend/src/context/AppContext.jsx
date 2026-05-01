@@ -96,29 +96,58 @@ export function AppProvider({ children }) {
 
   const logout = () => dispatch({ type: 'LOGOUT' });
 
-  const uploadDocument = async (payload) => {
-    const newDoc = {
-      title: payload.title,
-      description: payload.description,
-      categoryId: Number(payload.categoryId),
-      departmentId: Number(payload.departmentId),
-      owner: state.user?.name || 'Unknown',
-      fileType: payload.fileType,
-      sizeKb: Number(payload.sizeKb) || 100,
-      sensitivity: payload.sensitivity || 'internal',
-    };
+  /**
+   * Upload document — supports both metadata-only and file upload to S3
+   * If a file is provided, uses multipart/form-data to upload to /api/documents/upload
+   * Otherwise, sends JSON metadata to /api/documents
+   */
+  const uploadDocument = async (payload, file) => {
+    if (file) {
+      // Multipart upload with file → S3
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', payload.title);
+      formData.append('description', payload.description || '');
+      formData.append('categoryId', payload.categoryId);
+      formData.append('departmentId', payload.departmentId);
+      formData.append('owner', state.user?.name || 'Unknown');
+      formData.append('sensitivity', payload.sensitivity || 'internal');
 
-    await fetchJson('/api/documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newDoc),
-    });
+      const response = await fetch(`${API_BASE}/api/documents/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+    } else {
+      // Metadata-only upload (no file)
+      const newDoc = {
+        title: payload.title,
+        description: payload.description,
+        categoryId: Number(payload.categoryId),
+        departmentId: Number(payload.departmentId),
+        owner: state.user?.name || 'Unknown',
+        fileType: payload.fileType,
+        sizeKb: Number(payload.sizeKb) || 100,
+        sensitivity: payload.sensitivity || 'internal',
+      };
+
+      await fetchJson('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDoc),
+      });
+    }
 
     await loadInitialData();
   };
 
+  /**
+   * Add a comment to a specific document via the Comments Service
+   */
   const addCommentToDocument = async (documentId, text) => {
-    // Comments go through the Comments Service via Gateway
     await fetchJson('/api/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -128,6 +157,17 @@ export function AppProvider({ children }) {
         text,
       }),
     });
+  };
+
+  /**
+   * Fetch comments for a specific document from the Comments Service
+   */
+  const fetchCommentsForDocument = async (documentId) => {
+    try {
+      return await fetchJson(`/api/comments?documentId=${documentId}`);
+    } catch {
+      return [];
+    }
   };
 
   const addVersionToDocument = async (documentId, version, note) => {
@@ -229,6 +269,7 @@ export function AppProvider({ children }) {
       logout,
       uploadDocument,
       addCommentToDocument,
+      fetchCommentsForDocument,
       addVersionToDocument,
       createUser,
       updateUser,

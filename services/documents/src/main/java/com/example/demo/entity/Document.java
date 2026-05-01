@@ -34,6 +34,9 @@ public class Document {
 
     private String sensitivity = "internal";
 
+    @Column(name = "file_url")
+    private String fileUrl;
+
     // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -55,4 +58,6 @@ public class Document {
     public void setSizeKb(Integer s) { this.sizeKb = s; }
     public String getSensitivity() { return sensitivity; }
     public void setSensitivity(String s) { this.sensitivity = s; }
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String f) { this.fileUrl = f; }
 }

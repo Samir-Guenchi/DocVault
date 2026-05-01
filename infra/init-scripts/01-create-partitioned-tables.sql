@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS documents (
     department_id BIGINT,
     file_type TEXT,
     size_kb INTEGER,
-    sensitivity TEXT DEFAULT 'internal'
+    sensitivity TEXT DEFAULT 'internal',
+    file_url TEXT
 ) PARTITION BY RANGE (created_at);
 
 -- Create partitions for 2025 (quarterly)

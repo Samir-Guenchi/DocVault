@@ -1,18 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   FileText, ArrowLeft, FolderOpen, Building2, User, HardDrive,
-  Lock, History, MessageSquare, Plus, Calendar, Info
+  Lock, History, MessageSquare, Plus, Calendar, Info, ExternalLink
 } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import { useAppContext } from '../context/AppContext';
 
 export default function DocumentDetailPageBeginner() {
   const { id } = useParams();
-  const { state, addCommentToDocument, addVersionToDocument } = useAppContext();
+  const { state, addCommentToDocument, addVersionToDocument, fetchCommentsForDocument } = useAppContext();
   const [commentText, setCommentText] = useState('');
   const [version, setVersion] = useState('');
   const [versionNote, setVersionNote] = useState('');
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(true);
 
   const categoryMap = useMemo(
     () => Object.fromEntries(state.categories.map(c => [c.id, c.name])),
@@ -24,6 +26,17 @@ export default function DocumentDetailPageBeginner() {
   );
 
   const doc = state.documents.find(d => d.id === Number(id));
+
+  // Fetch comments from backend Comments Service
+  useEffect(() => {
+    if (doc) {
+      setLoadingComments(true);
+      fetchCommentsForDocument(doc.id)
+        .then(data => setComments(data || []))
+        .catch(() => setComments([]))
+        .finally(() => setLoadingComments(false));
+    }
+  }, [doc?.id]);
 
   if (!doc) {
     return (
@@ -47,6 +60,9 @@ export default function DocumentDetailPageBeginner() {
     e.preventDefault();
     if (!commentText.trim()) return;
     await addCommentToDocument(doc.id, commentText.trim());
+    // Refresh comments from backend
+    const updated = await fetchCommentsForDocument(doc.id);
+    setComments(updated || []);
     setCommentText('');
   };
 
@@ -65,8 +81,8 @@ export default function DocumentDetailPageBeginner() {
     { icon: Building2, label: 'Department', value: departmentMap[doc.departmentId] || 'Unknown' },
     { icon: User, label: 'Owner', value: doc.owner },
     { icon: Calendar, label: 'Created', value: new Date(doc.createdAt).toLocaleDateString() },
-    { icon: HardDrive, label: 'Size', value: `${doc.metadata?.sizeKb || 0} KB` },
-    { icon: Lock, label: 'Access', value: doc.metadata?.sensitivity || 'Internal' },
+    { icon: HardDrive, label: 'Size', value: `${doc.sizeKb || doc.metadata?.sizeKb || 0} KB` },
+    { icon: Lock, label: 'Access', value: doc.sensitivity || doc.metadata?.sensitivity || 'Internal' },
   ];
 
   return (
@@ -88,15 +104,26 @@ export default function DocumentDetailPageBeginner() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)', marginBottom: 'var(--s2)' }}>
-                <span className="badge badge-primary">{(doc.metadata?.fileType || 'pdf').toUpperCase()}</span>
-                <span className={`badge badge-${sensColor(doc.metadata?.sensitivity)}`}>
-                  {doc.metadata?.sensitivity || 'internal'}
+                <span className="badge badge-primary">{(doc.fileType || doc.metadata?.fileType || 'pdf').toUpperCase()}</span>
+                <span className={`badge badge-${sensColor(doc.sensitivity || doc.metadata?.sensitivity)}`}>
+                  {doc.sensitivity || doc.metadata?.sensitivity || 'internal'}
                 </span>
               </div>
               <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--s2)' }}>{doc.title}</h1>
               <p style={{ fontSize: 'var(--text-base)', color: 'var(--g600)', lineHeight: 1.65 }}>{doc.description}</p>
             </div>
           </div>
+
+          {/* S3 File URL */}
+          {doc.fileUrl && (
+            <div style={{ padding: 'var(--s3) var(--s4)', background: 'rgba(6,182,212,.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(6,182,212,.15)', marginBottom: 'var(--s4)', display: 'flex', alignItems: 'center', gap: 'var(--s2)' }}>
+              <ExternalLink size={16} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--cyan)', marginBottom: 2 }}>S3 Storage URL</div>
+                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--text-sm)', color: 'var(--g600)', wordBreak: 'break-all', textDecoration: 'underline' }}>{doc.fileUrl}</a>
+              </div>
+            </div>
+          )}
 
           <div style={{ padding: 'var(--s5)', background: 'var(--g50)', borderRadius: 'var(--r-lg)', border: '1px solid var(--g200)' }}>
             <h3 style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--s4)' }}>Document Information</h3>
@@ -164,15 +191,20 @@ export default function DocumentDetailPageBeginner() {
             </div>
           </div>
 
-          {/* Comments */}
+          {/* Comments — fetched from backend Comments Service */}
           <div className="card">
             <div className="card-header">
               <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)' }}>
                 <MessageSquare size={18} /> Comments
+                {comments.length > 0 && <span className="badge badge-primary" style={{ marginLeft: 4 }}>{comments.length}</span>}
               </h2>
             </div>
 
-            {(doc.comments || []).length === 0 ? (
+            {loadingComments ? (
+              <div style={{ textAlign: 'center', padding: 'var(--s8) var(--s4)' }}>
+                <p style={{ color: 'var(--g500)', fontSize: 'var(--text-sm)' }}>Loading comments...</p>
+              </div>
+            ) : comments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 'var(--s8) var(--s4)' }}>
                 <MessageSquare size={40} style={{ color: 'var(--g300)', marginBottom: 'var(--s3)' }} />
                 <h3 style={{ fontSize: 'var(--text-md)', marginBottom: 'var(--s2)' }}>No Comments Yet</h3>
@@ -180,13 +212,13 @@ export default function DocumentDetailPageBeginner() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s3)', marginBottom: 'var(--s4)' }}>
-                {(doc.comments || []).map((c, i) => (
-                  <div key={`${c.user}-${i}`} style={{ padding: 'var(--s4)', background: 'var(--g50)', borderRadius: 'var(--r-md)', border: '1px solid var(--g200)' }}>
+                {comments.map((c, i) => (
+                  <div key={c.id || `${c.user}-${i}`} style={{ padding: 'var(--s4)', background: 'var(--g50)', borderRadius: 'var(--r-md)', border: '1px solid var(--g200)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--s2)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s2)', fontWeight: 600, color: 'var(--cyan)', fontSize: 'var(--text-sm)' }}>
                         <User size={14} /> {c.user}
                       </div>
-                      <span className="badge badge-gray">{c.createdAt}</span>
+                      <span className="badge badge-gray">{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
                     </div>
                     <p style={{ color: 'var(--g600)', fontSize: 'var(--text-sm)', margin: 0 }}>{c.text}</p>
                   </div>

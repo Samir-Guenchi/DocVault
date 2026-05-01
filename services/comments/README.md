@@ -1,11 +1,11 @@
 # Comments Service
 
-Microservice for managing document comment threads, backed by Apache Cassandra for high-throughput distributed writes.
+Microservice for managing document comment threads, backed by an H2 In-Memory Database (via Spring Data JPA).
 
 ## Tech Stack
 
-- **Framework:** Spring Boot
-- **Database:** Apache Cassandra 4.1
+- **Framework:** Spring Boot 3.4.5
+- **Database:** H2 In-Memory DB
 - **Java:** 21
 
 ## API Endpoints
@@ -18,12 +18,8 @@ Microservice for managing document comment threads, backed by Apache Cassandra f
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CASSANDRA_HOST` | `localhost` | Cassandra host |
-| `CASSANDRA_PORT` | `9042` | Cassandra port |
-| `CASSANDRA_KEYSPACE` | `dms` | Keyspace name |
-| `CASSANDRA_DC` | `datacenter1` | Data center |
+No external environment variables required (uses H2 memory DB).
+Server port runs on `8082` by default.
 
 ## Running
 

@@ -14,6 +14,7 @@ export default function UserDashboardBeginner() {
   const [deptFilter, setDeptFilter] = useState('all');
   const [showUpload, setShowUpload] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
   const [form, setForm] = useState({ title: '', description: '', categoryId: '', departmentId: '', fileType: 'pdf', sizeKb: '100', sensitivity: 'internal' });
 
   const catMap = useMemo(() => Object.fromEntries(state.categories.map(c => [c.id, c.name])), [state.categories]);
@@ -33,8 +34,9 @@ export default function UserDashboardBeginner() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    await uploadDocument(form);
+    await uploadDocument(form, uploadFile);
     setShowUpload(false);
+    setUploadFile(null);
     setForm({ title: '', description: '', categoryId: '', departmentId: '', fileType: 'pdf', sizeKb: '100', sensitivity: 'internal' });
   };
 
@@ -197,6 +199,27 @@ export default function UserDashboardBeginner() {
                 <div className="form-group">
                   <label className="form-label form-label-required"><FileText size={15} /> Description</label>
                   <textarea className="form-textarea" rows="3" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label"><Upload size={15} /> Attach File (uploaded to S3)</label>
+                  <div style={{ border: '2px dashed var(--g300)', borderRadius: 'var(--r-lg)', padding: '16px', textAlign: 'center', background: 'var(--g50)', cursor: 'pointer', transition: 'border-color .2s' }}
+                       onClick={() => document.getElementById('file-upload-input').click()}>
+                    <input id="file-upload-input" type="file" style={{ display: 'none' }}
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                           onChange={e => { setUploadFile(e.target.files[0]); if (e.target.files[0]) { const name = e.target.files[0].name; const ext = name.includes('.') ? name.split('.').pop() : 'pdf'; setForm(f => ({...f, fileType: ext, sizeKb: Math.round(e.target.files[0].size / 1024).toString() })); } }} />
+                    {uploadFile ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <FileText size={20} style={{ color: 'var(--cyan)' }} />
+                        <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{uploadFile.name}</span>
+                        <span style={{ fontSize: 12, color: 'var(--g500)' }}>({(uploadFile.size / 1024).toFixed(0)} KB)</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload size={28} style={{ color: 'var(--g400)', marginBottom: 6 }} />
+                        <p style={{ fontSize: 13, color: 'var(--g500)', margin: 0 }}>Click to select a file (PDF, Word, Excel, etc.)</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label form-label-required"><FolderOpen size={15} /> Category</label>

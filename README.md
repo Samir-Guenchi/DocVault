@@ -35,12 +35,12 @@
                     │  Spring · 8081 │    │  Spring · 8082  │
                     │                │    │                  │
                     │  ┌──────────┐  │    │  ┌───────────┐  │
-                    │  │PostgreSQL│  │    │  │ Cassandra  │  │
-                    │  │  :5432   │  │    │  │   :9042    │  │
+                    │  │PostgreSQL│  │    │  │ H2 Mem DB  │  │
+                    │  │  :5432   │  │    │  │   :8082    │  │
                     │  └──────────┘  │    │  └───────────┘  │
                     │  ┌──────────┐  │    └─────────────────┘
-                    │  │  Redis   │  │
-                    │  │  :6379   │  │
+                    │  │MinIO S3  │  │
+                    │  │  :9000   │  │
                     │  └──────────┘  │
                     └────────┬───────┘
                              │ Event
@@ -70,7 +70,7 @@ docvault/
 │   │       ├── service/               #     Business Logic
 │   │       ├── event/                 #     Kafka Event DTOs
 │   │       └── config/               #     Kafka Producer Config
-│   ├── comments/                      #   Comments Service (Cassandra)
+│   ├── comments/                      #   Comments Service (H2)
 │   ├── gateway/                       #   API Gateway (Spring Cloud)
 │   ├── translator/                    #   AI Translator (Python + Gemini)
 │   └── translation-consumer/         #   Translation Writer (Kafka → PG)
@@ -124,6 +124,7 @@ bash deploy.sh full
 | **Frontend** | http://localhost:3000 |
 | **API Gateway** | http://localhost:8080 |
 | **Kafka UI** | http://localhost:9090 *(full mode)* |
+| **MinIO Console** | http://localhost:9001 *(full mode)* |
 
 ### Deploy with Kubernetes
 
@@ -170,7 +171,8 @@ All endpoints are accessed through the Gateway at `:8080`.
 |--------|----------|-------------|
 | `GET` | `/api/documents` | List all documents |
 | `GET` | `/api/documents/{id}` | Get by ID |
-| `POST` | `/api/documents` | Create (triggers Kafka event) |
+| `POST` | `/api/documents` | Create (metadata only, triggers Kafka) |
+| `POST` | `/api/documents/upload` | Create with file → MinIO S3 + metadata |
 | `PATCH` | `/api/documents/{id}` | Update fields |
 | `DELETE` | `/api/documents/{id}` | Delete |
 
@@ -195,13 +197,12 @@ All endpoints are accessed through the Gateway at `:8080`.
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Frontend | React 18, Vite | Enterprise SPA with i18n (EN/FR/AR) |
-| API Gateway | Spring Cloud Gateway | Routing, CORS, load balancing |
+| API Gateway | Spring Cloud Gateway 2025.1 | Routing, CORS, load balancing |
 | Documents API | Spring Boot 3.4.5, JPA | Core CRUD, PostgreSQL persistence |
-| Comments API | Spring Boot, Cassandra | High-throughput distributed comments |
+| Comments API | Spring Boot 3.4.5, H2 | High-throughput comments service |
 | Primary DB | PostgreSQL 15 | Partitioned tables (quarterly ranges) |
 | Cache | Redis 7 | Query caching, session storage |
-| NoSQL | Apache Cassandra 4.1 | Distributed comment storage |
-| Messaging | Apache Kafka 7.5 | Event-driven document processing |
+| Messaging | Apache Kafka 3.8.1 | Event-driven document processing |
 | Translation | Python + Google Gemini | AI document translation pipeline |
 | Storage | MinIO (S3-compatible) | Binary file storage |
 | Containers | Docker, Docker Compose | Service isolation |
@@ -212,8 +213,8 @@ All endpoints are accessed through the Gateway at `:8080`.
 | Attribute | How It's Achieved |
 |-----------|------------------|
 | **Scalability** | Kafka decoupling · K8s HPA · PostgreSQL partitioning |
-| **Availability** | Multi-replica pods · Cassandra replication · Redis failover |
-| **Disaster Recovery** | PVC persistent storage · Kafka log retention · PostgreSQL WAL |
+| **Availability** | Multi-replica pods · Redis failover |
+| **Disaster Recovery** | PVC persistent storage · Kafka log retention · MinIO replication |
 | **Consistency** | ACID transactions · Kafka idempotent producers · JPA locking |
 | **Security** | Server-side auth · CORS policy · Role-based access |
 | **Observability** | Spring Actuator · K8s probes · Structured logging |
@@ -222,13 +223,13 @@ All endpoints are accessed through the Gateway at `:8080`.
 
 ```sql
 -- PostgreSQL (Partitioned by quarter)
-documents (id, title, description, created_at, owner, category_id, department_id, file_type, size_kb, sensitivity)
+documents (id, title, description, created_at, owner, category_id, department_id, file_type, size_kb, sensitivity, file_url)
 users     (id, name, email, password, role, department_id, status)
 categories (id, name, description)
 departments (id, name, description)
 
--- Cassandra
-comments_by_document (document_id, comment_id, user_name, text, created_at)
+-- H2 Comments DB
+comments (id, document_id, user_name, text, created_at)
 ```
 
 ---

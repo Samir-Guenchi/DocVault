@@ -6,6 +6,7 @@ Core microservice handling documents, users, categories, and departments. Publis
 
 - **Framework:** Spring Boot 3.4.5
 - **Database:** PostgreSQL 15 (partitioned by quarter)
+- **Storage:** MinIO (S3-Compatible) for binary files
 - **Messaging:** Apache Kafka (producer)
 - **Cache:** Redis 7 (optional)
 - **Java:** 21
@@ -17,7 +18,8 @@ Core microservice handling documents, users, categories, and departments. Publis
 |--------|------|-------------|
 | `GET` | `/api/documents` | List all |
 | `GET` | `/api/documents/{id}` | Get by ID |
-| `POST` | `/api/documents` | Create → publishes Kafka event |
+| `POST` | `/api/documents` | Create metadata only → publishes Kafka event |
+| `POST` | `/api/documents/upload` | Create with file upload → MinIO S3 + metadata |
 | `PATCH` | `/api/documents/{id}` | Partial update |
 | `DELETE` | `/api/documents/{id}` | Delete |
 | `GET` | `/api/documents/health` | Health check |
@@ -78,6 +80,9 @@ Environment variables:
 | `POSTGRES_USER` | `postgres` | Database user |
 | `POSTGRES_PASSWORD` | `postgres` | Database password |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9093` | Kafka broker |
+| `S3_ENDPOINT` | `http://localhost:9000` | MinIO endpoint URL |
+| `S3_ACCESS_KEY` | `minioadmin` | MinIO access key |
+| `S3_SECRET_KEY` | `minioadmin` | MinIO secret key |
 
 ## Running
 

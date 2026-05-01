@@ -35,3 +35,10 @@ spring:
 kafka:
   topic:
     document-uploaded: ${KAFKA_TOPIC_DOCUMENTS_UPLOADED:dms.documents.uploaded}
+
+# S3 / MinIO Configuration
+s3:
+  endpoint: ${S3_ENDPOINT:http://localhost:9000}
+  access-key: ${S3_ACCESS_KEY:minioadmin}
+  secret-key: ${S3_SECRET_KEY:minioadmin}
+  bucket: ${S3_BUCKET:dms-documents}

@@ -8,7 +8,7 @@ DevOps configuration for deploying and operating the DocVault DMS platform.
 infra/
 ├── docker/
 │   ├── docker-compose.yml          # Lite stack (PG + Docs + Gateway + UI)
-│   └── docker-compose.full.yml     # Full stack (+ Kafka + Redis + Cassandra + Translator)
+│   └── docker-compose.full.yml     # Full stack (+ Kafka + MinIO + Redis + Zookeeper + Translator)
 ├── k8s/
 │   └── dms-k8s.yaml                # Kubernetes production manifests
 ├── init-scripts/
@@ -37,7 +37,7 @@ docker-compose up --build
 
 ### Docker Compose — Full
 
-Adds Kafka, Redis, Cassandra, Translator, and Translation Consumer.
+Adds Kafka, Zookeeper, MinIO, Redis, Translator, and Translation Consumer.
 
 ```bash
 cd docker
@@ -49,6 +49,7 @@ docker-compose -f docker-compose.full.yml up --build
 | UI | http://localhost:3000 |
 | Gateway | http://localhost:8080 |
 | Kafka UI | http://localhost:9090 |
+| MinIO Console | http://localhost:9001 |
 
 ### Kubernetes
 
@@ -69,4 +70,4 @@ bash deploy.sh full     # Full mode
 The `init-scripts/` directory contains:
 
 - **PostgreSQL:** Partitioned `documents` table (quarterly ranges), `users`, `departments`, `categories` with seed data
-- **Cassandra:** `comments_by_document` table for high-write comment storage
+- **Cassandra:** (Legacy) Keyspace definitions, though current setup defaults to H2 for comments.

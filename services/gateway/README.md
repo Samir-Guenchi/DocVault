@@ -4,7 +4,7 @@ Spring Cloud Gateway that routes all client requests to the appropriate downstre
 
 ## Tech Stack
 
-- **Framework:** Spring Cloud Gateway
+- **Framework:** Spring Cloud Gateway 2025.1.1 (Spring Boot 4.0.2)
 - **Java:** 21
 
 ## Route Configuration
@@ -23,7 +23,7 @@ Spring Cloud Gateway that routes all client requests to the appropriate downstre
 |----------|---------|-------------|
 | `SERVER_PORT` | `8080` | Gateway port |
 | `DOCUMENTS_SERVICE_URL` | `http://localhost:8081` | Documents service URL |
-| `COMMENTS_SERVICE_URL` | `http://localhost:8083` | Comments service URL |
+| `COMMENTS_SERVICE_URL` | `http://localhost:8082` | Comments service URL |
 
 ## Features
 
