@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: documents
+            uri: http://documents-service:8081
+            predicates:
+              - Path=/api/documents/**
+          - id: users
+            uri: http://documents-service:8081
+            predicates:
+              - Path=/api/users/**
+          - id: categories
+            uri: http://documents-service:8081
+            predicates:
+              - Path=/api/categories/**
+          - id: departments
+            uri: http://documents-service:8081
+            predicates:
+              - Path=/api/departments/**
+          - id: comments
+            uri: http://comments-service:8082
+            predicates:
+              - Path=/api/comments/**
+        http-client:
+          connect-timeout: 5000
+          response-timeout: 30s
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

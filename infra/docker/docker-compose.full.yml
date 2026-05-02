@@ -174,7 +174,7 @@ services:
       KAFKA_GROUP_ID: translator-service
       KAFKA_INPUT_TOPIC: dms.documents.uploaded
       KAFKA_OUTPUT_TOPIC: dms.documents.translated
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_KEY: AIzaSyA6enE-LWircHC2tSGFQEAkn5AvHmto_c8
       AUTO_OFFSET_RESET: latest
     depends_on:
       kafka:
