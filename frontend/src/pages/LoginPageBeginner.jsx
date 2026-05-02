@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Lock, Mail, LogIn, Globe, AlertCircle, Eye, EyeOff, ArrowRight, Zap } from 'lucide-react';
+import { Lock, Mail, LogIn, Globe, AlertCircle, Eye, EyeOff, ArrowRight, Building2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const LANGS = [
@@ -50,184 +50,660 @@ export default function LoginPageBeginner() {
   const curLang = LANGS.find(l => l.code === (i18n.language || 'en'))?.label || 'English';
 
   return (
-    <div className="lp-login">
-      {/* Mesh Background */}
-      <div className="lp-login__bg" />
-
-      {/* Header */}
-      <header className="lp-login__header">
-        <Link to="/" className="lp-login__brand">
-          <img src="/logo_dms.png" alt="DMS ERP" />
+    <div className="login-page">
+      {/* Left Side - Branding */}
+      <div className="login-left">
+        <Link to="/" className="login-logo">
+          <span className="logo-text">DocVault</span>
+          <span className="logo-subtitle">DMS</span>
         </Link>
-        <div style={{ position: 'relative' }}>
-          <button className="lp-login__lang-btn" onClick={() => setLangOpen(!langOpen)}>
-            <Globe size={15} /> {curLang}
-          </button>
-          {langOpen && (
-            <div className="lp-login__lang-dd">
-              {LANGS.map(l => (
-                <button key={l.code} className={`lp-login__lang-item ${(i18n.language || 'en') === l.code ? 'active' : ''}`}
-                  onClick={() => { i18n.changeLanguage(l.code); setLangOpen(false); }}>
-                  {l.label}
-                </button>
-              ))}
+        <div className="login-branding">
+          <h1>Enterprise Document Management</h1>
+          <p>Secure, scalable, and compliant document management for modern organizations.</p>
+          <div className="login-features">
+            <div className="login-feature">
+              <div className="feature-icon">
+                <Lock size={20} />
+              </div>
+              <div>
+                <div className="feature-title">Bank-Grade Security</div>
+                <div className="feature-desc">256-bit encryption</div>
+              </div>
             </div>
-          )}
+            <div className="login-feature">
+              <div className="feature-icon">
+                <Building2 size={20} />
+              </div>
+              <div>
+                <div className="feature-title">Enterprise Ready</div>
+                <div className="feature-desc">99.9% uptime SLA</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main */}
-      <main className="lp-login__main">
-        <div className="lp-login__card">
-          {/* Logo */}
-          <div className="lp-login__logo-wrap">
-            <img src="/logo_dms.png" alt="DMS ERP" />
+      {/* Right Side - Login Form */}
+      <div className="login-right">
+        <div className="login-header">
+          <div className="login-lang">
+            <button className="lang-btn" onClick={() => setLangOpen(!langOpen)}>
+              <Globe size={16} />
+              <span>{curLang}</span>
+            </button>
+            {langOpen && (
+              <div className="lang-dropdown">
+                {LANGS.map(l => (
+                  <button
+                    key={l.code}
+                    className={`lang-item ${(i18n.language || 'en') === l.code ? 'active' : ''}`}
+                    onClick={() => { i18n.changeLanguage(l.code); setLangOpen(false); }}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="login-form-container">
+          <div className="login-form-header">
+            <h2>Sign In</h2>
+            <p>Access your document management workspace</p>
           </div>
 
-          <h1>{t('login.title') || 'Welcome back'}</h1>
-          <p className="lp-login__sub">Sign in to your ERP Document Management workspace</p>
-
           {apiError && (
-            <div className="lp-login__alert lp-login__alert--warn">
-              <AlertCircle size={16} />
-              <div><strong>Connection Issue</strong><br/>{apiError}</div>
+            <div className="alert alert-warning">
+              <AlertCircle size={18} />
+              <div>
+                <strong>Connection Issue</strong>
+                <p>{apiError}</p>
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="lp-login__alert lp-login__alert--err">
-              <AlertCircle size={16} />
-              <div><strong>Login Failed</strong><br/>{error}</div>
+            <div className="alert alert-error">
+              <AlertCircle size={18} />
+              <div>
+                <strong>Login Failed</strong>
+                <p>{error}</p>
+              </div>
             </div>
           )}
 
-          <form onSubmit={doLogin}>
-            <div className="lp-login__field">
-              <label><Mail size={14} /> {t('login.email') || 'Email'}</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@company.com" autoComplete="email" required />
+          <form onSubmit={doLogin} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email">
+                <Mail size={16} />
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
             </div>
-            <div className="lp-login__field">
-              <label><Lock size={14} /> {t('login.password') || 'Password'}</label>
-              <div style={{ position: 'relative' }}>
-                <input type={showPw ? 'text' : 'password'} value={password}
-                  onChange={e => setPassword(e.target.value)} placeholder="Enter your password"
-                  autoComplete="current-password" required style={{ paddingRight: 42 }} />
-                <button type="button" className="lp-login__eye" onClick={() => setShowPw(!showPw)}>
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+
+            <div className="form-group">
+              <label htmlFor="password">
+                <Lock size={16} />
+                Password
+              </label>
+              <div className="password-input">
+                <input
+                  id="password"
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPw(!showPw)}
+                  tabIndex={-1}
+                >
+                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            <button type="submit" className="lp-login__submit" disabled={loading}>
+
+            <button type="submit" className="btn-submit" disabled={loading}>
               {loading ? (
-                <><span className="lp-login__spinner" /> Signing in…</>
+                <>
+                  <span className="spinner" />
+                  Signing in...
+                </>
               ) : (
-                <><LogIn size={17} /> {t('login.signIn') || 'Sign In'}</>
+                <>
+                  <LogIn size={18} />
+                  Sign In
+                </>
               )}
             </button>
           </form>
 
-          <div className="lp-login__back">
-            <Link to="/">← Back to home</Link>
+          <div className="login-divider">
+            <span>or use demo account</span>
           </div>
 
-          {/* Demo */}
-          <div className="lp-login__demo">
-            <div className="lp-login__demo-head">
-              <Zap size={14} /> Quick Demo Access
-            </div>
-            <div className="lp-login__demo-grid">
-              <button onClick={() => quickLogin('user@dms.com', '123')} disabled={loading}>
-                <span className="lp-login__demo-role">User</span>
-                <span className="lp-login__demo-email">user@dms.com</span>
-                <ArrowRight size={14} />
-              </button>
-              <button onClick={() => quickLogin('admin@dms.com', '123')} disabled={loading}>
-                <span className="lp-login__demo-role">Admin</span>
-                <span className="lp-login__demo-email">admin@dms.com</span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
+          <div className="demo-accounts">
+            <button
+              className="demo-btn"
+              onClick={() => quickLogin('user@dms.com', '123')}
+              disabled={loading}
+            >
+              <div className="demo-info">
+                <span className="demo-role">User Account</span>
+                <span className="demo-email">user@dms.com</span>
+              </div>
+              <ArrowRight size={18} />
+            </button>
+            <button
+              className="demo-btn"
+              onClick={() => quickLogin('admin@dms.com', '123')}
+              disabled={loading}
+            >
+              <div className="demo-info">
+                <span className="demo-role">Admin Account</span>
+                <span className="demo-email">admin@dms.com</span>
+              </div>
+              <ArrowRight size={18} />
+            </button>
+          </div>
+
+          <div className="login-footer">
+            <Link to="/" className="back-link">
+              ← Back to home
+            </Link>
           </div>
         </div>
-      </main>
-
-      <footer className="lp-login__footer">
-        © 2026 DMS — Enterprise Resource Planning · Document Management System
-      </footer>
+      </div>
 
       <style>{`
-.lp-login{min-height:100vh;display:flex;flex-direction:column;position:relative;background:#0c1929;font-family:'Inter',system-ui,sans-serif;overflow:hidden}
-.lp-login__bg{position:fixed;inset:0;background:
-  radial-gradient(ellipse 70% 50% at 60% 30%,rgba(6,182,212,.1) 0%,transparent 60%),
-  radial-gradient(ellipse 50% 40% at 20% 70%,rgba(99,102,241,.07) 0%,transparent 50%),
-  radial-gradient(ellipse 30% 30% at 80% 80%,rgba(139,92,246,.06) 0%,transparent 40%);
-  pointer-events:none}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Header */
-.lp-login__header{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;position:relative;z-index:10}
-.lp-login__brand{display:flex;align-items:center;text-decoration:none}
-.lp-login__brand img{height:40px;filter:drop-shadow(0 2px 8px rgba(6,182,212,.3))}
-.lp-login__lang-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
-.lp-login__lang-btn:hover{background:rgba(255,255,255,.1);color:#fff}
-.lp-login__lang-dd{position:absolute;top:calc(100% + 6px);right:0;background:rgba(19,35,56,.96);border:1px solid rgba(255,255,255,.1);border-radius:10px;overflow:hidden;min-width:140px;z-index:100;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.lp-login__lang-item{width:100%;padding:10px 16px;border:none;background:transparent;color:rgba(255,255,255,.7);font-size:13px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
-.lp-login__lang-item:hover{background:rgba(255,255,255,.06)}
-.lp-login__lang-item.active{color:#06b6d4;font-weight:600;background:rgba(6,182,212,.08)}
+        .login-page {
+          min-height: 100vh;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
 
-/* Main */
-.lp-login__main{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 24px;position:relative;z-index:1}
-.lp-login__card{width:100%;max-width:420px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:36px 32px;backdrop-filter:blur(20px);box-shadow:0 24px 64px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.06)}
+        /* Left Side - Branding */
+        .login-left {
+          background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+          padding: 48px;
+          display: flex;
+          flex-direction: column;
+          color: white;
+        }
 
-.lp-login__logo-wrap{width:72px;height:72px;margin:0 auto 20px;filter:drop-shadow(0 4px 16px rgba(6,182,212,.3))}
-.lp-login__logo-wrap img{width:100%;height:100%;object-fit:contain}
+        .login-logo {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          text-decoration: none;
+          margin-bottom: 80px;
+        }
 
-.lp-login__card h1{text-align:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:-.02em}
-.lp-login__sub{text-align:center;font-size:13px;color:rgba(255,255,255,.45);margin-bottom:28px}
+        .login-logo .logo-text {
+          font-size: 28px;
+          color: white;
+          font-weight: 700;
+          letter-spacing: -0.5px;
+        }
 
-/* Alerts */
-.lp-login__alert{display:flex;gap:10px;padding:12px 14px;border-radius:10px;font-size:12px;margin-bottom:16px;line-height:1.5}
-.lp-login__alert strong{display:block;font-weight:600;margin-bottom:2px}
-.lp-login__alert--warn{background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);color:#fbbf24}
-.lp-login__alert--err{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);color:#fca5a5}
+        .login-logo .logo-subtitle {
+          font-size: 16px;
+          color: rgba(255, 255, 255, 0.8);
+          font-weight: 600;
+        }
 
-/* Form */
-.lp-login__field{margin-bottom:18px}
-.lp-login__field label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
-.lp-login__field input{width:100%;padding:11px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px;font-family:inherit;transition:all .2s;outline:none}
-.lp-login__field input::placeholder{color:rgba(255,255,255,.25)}
-.lp-login__field input:hover{border-color:rgba(255,255,255,.18)}
-.lp-login__field input:focus{border-color:rgba(6,182,212,.5);box-shadow:0 0 0 3px rgba(6,182,212,.1);background:rgba(255,255,255,.07)}
-.lp-login__eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;padding:4px;display:flex}
-.lp-login__eye:hover{color:rgba(255,255,255,.6)}
+        .login-branding {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          max-width: 480px;
+        }
 
-.lp-login__submit{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:all .25s;box-shadow:0 0 20px rgba(6,182,212,.2),inset 0 1px 0 rgba(255,255,255,.15);margin-top:4px}
-.lp-login__submit:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 0 32px rgba(6,182,212,.35)}
-.lp-login__submit:disabled{opacity:.6;cursor:not-allowed}
+        .login-branding h1 {
+          font-size: 42px;
+          font-weight: 800;
+          line-height: 1.2;
+          margin-bottom: 20px;
+          letter-spacing: -1px;
+        }
 
-.lp-login__spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+        .login-branding > p {
+          font-size: 18px;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.9);
+          margin-bottom: 48px;
+        }
 
-.lp-login__back{text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)}
-.lp-login__back a{font-size:13px;color:rgba(255,255,255,.4);text-decoration:none;transition:color .15s}
-.lp-login__back a:hover{color:rgba(255,255,255,.7)}
+        .login-features {
+          display: grid;
+          gap: 24px;
+        }
 
-/* Demo */
-.lp-login__demo{margin-top:20px;padding:16px;background:rgba(6,182,212,.04);border:1px solid rgba(6,182,212,.1);border-radius:12px}
-.lp-login__demo-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#06b6d4;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
-.lp-login__demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.lp-login__demo-grid button{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;cursor:pointer;font-family:inherit;transition:all .2s;text-align:left;color:#06b6d4}
-.lp-login__demo-grid button:hover{background:rgba(255,255,255,.08);border-color:rgba(6,182,212,.3)}
-.lp-login__demo-role{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);display:block}
-.lp-login__demo-email{font-size:10px;color:rgba(255,255,255,.35);font-family:monospace;display:block;margin-top:2px}
+        .login-feature {
+          display: flex;
+          gap: 16px;
+          align-items: flex-start;
+        }
 
-/* Footer */
-.lp-login__footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.2);position:relative;z-index:1;border-top:1px solid rgba(255,255,255,.04)}
+        .feature-icon {
+          width: 48px;
+          height: 48px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
 
-@media(max-width:520px){
-  .lp-login__card{padding:28px 20px}
-  .lp-login__demo-grid{grid-template-columns:1fr}
-}
+        .feature-title {
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+
+        .feature-desc {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Right Side - Form */
+        .login-right {
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .login-header {
+          padding: 24px 48px;
+          display: flex;
+          justify-content: flex-end;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .login-lang {
+          position: relative;
+        }
+
+        .lang-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          color: #4b5563;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .lang-btn:hover {
+          background: #f3f4f6;
+          border-color: #d1d5db;
+        }
+
+        .lang-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          min-width: 140px;
+          overflow: hidden;
+          z-index: 100;
+        }
+
+        .lang-item {
+          width: 100%;
+          padding: 10px 16px;
+          border: none;
+          background: transparent;
+          color: #4b5563;
+          font-size: 14px;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          transition: background 0.15s;
+        }
+
+        .lang-item:hover {
+          background: #f9fafb;
+        }
+
+        .lang-item.active {
+          color: #0066cc;
+          font-weight: 600;
+          background: #eff6ff;
+        }
+
+        .login-form-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 48px;
+          max-width: 480px;
+          width: 100%;
+          margin: 0 auto;
+        }
+
+        .login-form-header {
+          margin-bottom: 32px;
+        }
+
+        .login-form-header h2 {
+          font-size: 32px;
+          font-weight: 800;
+          color: #1a1a1a;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
+        }
+
+        .login-form-header p {
+          font-size: 16px;
+          color: #6b7280;
+        }
+
+        /* Alerts */
+        .alert {
+          display: flex;
+          gap: 12px;
+          padding: 14px 16px;
+          border-radius: 10px;
+          margin-bottom: 24px;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .alert svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .alert strong {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+
+        .alert p {
+          margin: 0;
+        }
+
+        .alert-warning {
+          background: #fef3c7;
+          border: 1px solid #fde68a;
+          color: #92400e;
+        }
+
+        .alert-error {
+          background: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        }
+
+        /* Form */
+        .login-form {
+          margin-bottom: 24px;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        .form-group label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+
+        .form-group input {
+          width: 100%;
+          padding: 12px 14px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          color: #1a1a1a;
+          font-size: 15px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .form-group input::placeholder {
+          color: #9ca3af;
+        }
+
+        .form-group input:hover {
+          border-color: #d1d5db;
+        }
+
+        .form-group input:focus {
+          outline: none;
+          border-color: #0066cc;
+          background: white;
+          box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .password-input {
+          position: relative;
+        }
+
+        .password-toggle {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #9ca3af;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+          color: #4b5563;
+        }
+
+        .btn-submit {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 14px;
+          background: #0066cc;
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          margin-top: 8px;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+          background: #0052a3;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-submit:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Divider */
+        .login-divider {
+          text-align: center;
+          margin: 24px 0;
+          position: relative;
+        }
+
+        .login-divider::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: #e5e7eb;
+        }
+
+        .login-divider span {
+          position: relative;
+          background: white;
+          padding: 0 16px;
+          font-size: 13px;
+          color: #9ca3af;
+          font-weight: 500;
+        }
+
+        /* Demo Accounts */
+        .demo-accounts {
+          display: grid;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .demo-btn {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          text-align: left;
+        }
+
+        .demo-btn:hover:not(:disabled) {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+        }
+
+        .demo-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .demo-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .demo-role {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1a1a1a;
+        }
+
+        .demo-email {
+          font-size: 12px;
+          color: #6b7280;
+          font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+        }
+
+        .demo-btn svg {
+          color: #9ca3af;
+          flex-shrink: 0;
+        }
+
+        /* Footer */
+        .login-footer {
+          text-align: center;
+          padding-top: 24px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .back-link {
+          font-size: 14px;
+          color: #6b7280;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .back-link:hover {
+          color: #0066cc;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .login-page {
+            grid-template-columns: 1fr;
+          }
+
+          .login-left {
+            display: none;
+          }
+
+          .login-right {
+            min-height: 100vh;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .login-header {
+            padding: 20px 24px;
+          }
+
+          .login-form-container {
+            padding: 32px 24px;
+          }
+
+          .login-form-header h2 {
+            font-size: 28px;
+          }
+        }
       `}</style>
     </div>
   );
