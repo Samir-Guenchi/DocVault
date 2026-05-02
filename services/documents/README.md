@@ -84,16 +84,54 @@ Environment variables:
 | `S3_ACCESS_KEY` | `minioadmin` | MinIO access key |
 | `S3_SECRET_KEY` | `minioadmin` | MinIO secret key |
 
-## Running
+## Running Locally
 
 ```bash
+# Start with Spring Boot Maven plugin
 ./mvnw spring-boot:run
-# → http://localhost:8081
+
+# Access at http://localhost:8081
 ```
 
-## Docker
+## Docker Deployment
 
 ```bash
+# Build image
 docker build -t dms-documents .
-docker run -p 8081:8081 -e POSTGRES_HOST=host.docker.internal dms-documents
+
+# Run container
+docker run -p 8081:8081 \
+  -e POSTGRES_HOST=host.docker.internal \
+  -e KAFKA_BOOTSTRAP_SERVERS=host.docker.internal:9092 \
+  dms-documents
+
+# Run with docker-compose (recommended)
+cd ../../infra/docker
+docker-compose -f docker-compose.full.yml up documents-service
 ```
+
+## Kafka Integration
+
+The service publishes events to Kafka when documents are created:
+
+**Topic:** `dms.documents.uploaded`
+
+**Event Structure:**
+```json
+{
+  "documentId": 1,
+  "title": "Document Title",
+  "description": "Document Description",
+  "owner": "User Name",
+  "categoryId": 1,
+  "departmentId": 1,
+  "fileUrl": "s3://bucket/file.pdf",
+  "timestamp": "2026-05-02T10:30:00Z"
+}
+```
+
+**Publisher:** `DocumentEventPublisher.java`
+
+This event triggers downstream processing:
+- Translation service consumes and translates to multiple languages
+- Translation consumer stores results in PostgreSQL

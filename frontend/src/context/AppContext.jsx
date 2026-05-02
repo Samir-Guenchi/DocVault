@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react';
 
 // In dev: points to Gateway on 8080. In Docker: nginx proxies /api to gateway
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// When VITE_API_URL is empty string, use empty base (relative URLs)
+const API_BASE = import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== '' 
+  ? import.meta.env.VITE_API_URL 
+  : (import.meta.env.MODE === 'production' ? '' : 'http://localhost:8080');
 
 const AppContext = createContext(null);
 

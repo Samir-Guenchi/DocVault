@@ -25,6 +25,25 @@ dms.documents.uploaded (Kafka) → Translator → Gemini AI → dms.documents.tr
 | `GEMINI_API_KEY` | — | Google Gemini API key (**required**) |
 | `AUTO_OFFSET_RESET` | `latest` | Kafka offset reset policy |
 
+### Setting up Gemini API Key
+
+The service requires a valid Google Gemini API key. To configure:
+
+1. **Docker Compose:** Set in `docker-compose.full.yml`
+   ```yaml
+   translator-service:
+     environment:
+       GEMINI_API_KEY: your-api-key-here
+   ```
+
+2. **Local Development:** Export as environment variable
+   ```bash
+   export GEMINI_API_KEY=your-api-key-here
+   python translator.py
+   ```
+
+**Current Configuration:** The API key is already configured in the docker-compose file.
+
 ## Design Decisions
 
 - **No direct API calls** to other services — Kafka-only communication

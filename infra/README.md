@@ -8,7 +8,7 @@ DevOps configuration for deploying and operating the DocVault DMS platform.
 infra/
 ├── docker/
 │   ├── docker-compose.yml          # Lite stack (PG + Docs + Gateway + UI)
-│   └── docker-compose.full.yml     # Full stack (+ Kafka + MinIO + Redis + Zookeeper + Translator)
+│   └── docker-compose.full.yml     # Full stack (+ Kafka + MinIO + Redis + Translator)
 ├── k8s/
 │   └── dms-k8s.yaml                # Kubernetes production manifests
 ├── init-scripts/
@@ -18,51 +18,87 @@ infra/
 └── deploy.sh                        # One-command deployment script
 ```
 
-## Deployment Options
+## Quick Start
 
-### Docker Compose — Lite
+### Recommended: Use Startup Scripts
 
-Starts PostgreSQL, Documents Service, Gateway, and UI.
+From the project root directory:
+
+```bash
+# Linux/macOS
+bash START.sh
+
+# Windows
+START.bat
+```
+
+### Manual Deployment
 
 ```bash
 cd docker
-docker-compose up --build
+docker-compose -f docker-compose.full.yml up -d --build
 ```
 
-| Service | URL |
-|---------|-----|
-| UI | http://localhost:3000 |
-| Gateway | http://localhost:8080 |
-| PostgreSQL | localhost:5432 |
+## Services Included
 
-### Docker Compose — Full
+**Full Stack (docker-compose.full.yml):**
+- PostgreSQL (Database)
+- Redis (Cache)
+- MinIO (S3 Storage)
+- Cassandra (NoSQL)
+- Kafka + Zookeeper (Message Broker)
+- Documents Service (Spring Boot)
+- Comments Service (Spring Boot)
+- Gateway (Spring Cloud)
+- Translator Service (Python + Gemini AI)
+- Translation Consumer (Python)
+- Frontend UI (React + Nginx)
+- Kafka UI (Management Console)
 
-Adds Kafka, Zookeeper, MinIO, Redis, Translator, and Translation Consumer.
+## Access Points
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| UI | http://localhost:3000 | admin@dms.com / 123 |
+| Gateway | http://localhost:8080 | - |
+| Kafka UI | http://localhost:9090 | - |
+| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
+
+## Management Commands
 
 ```bash
-cd docker
-docker-compose -f docker-compose.full.yml up --build
+# View logs
+docker-compose -f docker-compose.full.yml logs -f
+
+# Check status
+docker-compose -f docker-compose.full.yml ps
+
+# Stop all services
+docker-compose -f docker-compose.full.yml down
+
+# Restart services
+docker-compose -f docker-compose.full.yml restart
+
+# Rebuild and restart
+docker-compose -f docker-compose.full.yml up -d --build
 ```
 
-| Service | URL |
-|---------|-----|
-| UI | http://localhost:3000 |
-| Gateway | http://localhost:8080 |
-| Kafka UI | http://localhost:9090 |
-| MinIO Console | http://localhost:9001 |
-
-### Kubernetes
+## Kubernetes Deployment
 
 ```bash
+# Build images
+docker build -t dms-documents:latest services/documents/
+docker build -t dms-gateway:latest services/gateway/
+docker build -t dms-ui:latest frontend/
+
+# Deploy to cluster
 kubectl apply -f k8s/dms-k8s.yaml
-# UI → http://localhost:30080
-```
 
-### Deploy Script
+# Check status
+kubectl get pods
+kubectl get services
 
-```bash
-bash deploy.sh          # Lite mode
-bash deploy.sh full     # Full mode
+# Access UI at http://localhost:30080
 ```
 
 ## Database Schema
@@ -70,4 +106,8 @@ bash deploy.sh full     # Full mode
 The `init-scripts/` directory contains:
 
 - **PostgreSQL:** Partitioned `documents` table (quarterly ranges), `users`, `departments`, `categories` with seed data
-- **Cassandra:** (Legacy) Keyspace definitions, though current setup defaults to H2 for comments.
+- **Cassandra:** Keyspace definitions for future use
+
+## Additional Information
+
+For detailed setup instructions, see SETUP_GUIDE.md in the project root.

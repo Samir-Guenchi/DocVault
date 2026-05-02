@@ -26,13 +26,34 @@ Documents Service  ──→  Kafka  ──→  Translator (Gemini AI)
 
 ## Running Locally
 
+### Prerequisites
+- PostgreSQL running on localhost:5432
+- Kafka running on localhost:9092 (for full functionality)
+- MinIO running on localhost:9000 (for file uploads)
+
 ```bash
-# Start PostgreSQL first
-cd ../infra/docker && docker-compose up postgres -d
+# Start infrastructure services
+cd ../infra/docker
+docker-compose -f docker-compose.full.yml up postgres kafka minio redis -d
 
 # Run Documents Service
-cd documents && ./mvnw spring-boot:run
+cd ../../services/documents
+./mvnw spring-boot:run
+
+# Run Comments Service
+cd ../comments
+./mvnw spring-boot:run
 
 # Run Gateway
-cd gateway && ./mvnw spring-boot:run
+cd ../gateway
+./mvnw spring-boot:run
 ```
+
+### Running with Docker (Recommended)
+
+```bash
+cd ../infra/docker
+docker-compose -f docker-compose.full.yml up --build
+```
+
+This starts all services with proper networking and configuration.

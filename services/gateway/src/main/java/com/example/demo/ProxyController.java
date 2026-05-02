@@ -114,9 +114,15 @@ public class ProxyController {
                 }
             });
             
+            // Ensure Content-Length is set to avoid chunked encoding
+            String responseBody = response.getBody();
+            if (responseBody != null && responseHeaders.getContentLength() < 0) {
+                responseHeaders.setContentLength(responseBody.getBytes().length);
+            }
+            
             return ResponseEntity.status(response.getStatusCode())
                     .headers(responseHeaders)
-                    .body(response.getBody());
+                    .body(responseBody);
                     
         } catch (HttpClientErrorException e) {
             System.err.println("Client error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());

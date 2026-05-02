@@ -1,19 +1,10 @@
-<div align="center">
-
 # DocVault
 
-### Enterprise Document Management System
+## Enterprise Document Management System
 
-**A production-grade, distributed microservices platform for banking-level document lifecycle management.**
+A production-grade, distributed microservices platform for banking-level document lifecycle management.
 
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Kafka](https://img.shields.io/badge/Apache_Kafka-7.5-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io)
-
-</div>
+**Technologies:** Spring Boot 3.4.5 | React 18 | PostgreSQL 15 | Apache Kafka 7.5 | Docker | Kubernetes
 
 ---
 
@@ -104,27 +95,44 @@ docvault/
 
 ### Prerequisites
 
-- **Docker** & **Docker Compose** v2+
-- **Java 21** (for local service development)
-- **Node.js 20+** (for local frontend development)
+- Docker & Docker Compose v2+
+- Java 21 (for local service development)
+- Node.js 20+ (for local frontend development)
 
-### Deploy with Docker
+### One-Command Startup (Recommended)
 
 ```bash
-# Lite mode — PostgreSQL + Documents + Gateway + UI
-cd infra
-bash deploy.sh
-
-# Full mode — adds Kafka, Redis, Cassandra, Translator
-bash deploy.sh full
+# Start all services with one command
+bash START.sh
 ```
 
-| Service | URL |
-|---------|-----|
-| **Frontend** | http://localhost:3000 |
-| **API Gateway** | http://localhost:8080 |
-| **Kafka UI** | http://localhost:9090 *(full mode)* |
-| **MinIO Console** | http://localhost:9001 *(full mode)* |
+This will start the full stack and display access URLs when ready.
+
+### Manual Docker Deployment
+
+```bash
+# Full stack deployment (All features working)
+cd infra/docker
+docker-compose -f docker-compose.full.yml up -d --build
+
+# Wait for all services to start (about 30-60 seconds)
+docker-compose -f docker-compose.full.yml ps
+
+# View logs
+docker-compose -f docker-compose.full.yml logs -f
+
+# Stop all services
+docker-compose -f docker-compose.full.yml down
+```
+
+### Access Points
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Frontend | http://localhost:3000 | admin@dms.com / 123 |
+| API Gateway | http://localhost:8080 | - |
+| Kafka UI | http://localhost:9090 | - |
+| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
 
 ### Deploy with Kubernetes
 
@@ -156,14 +164,31 @@ cd ../../frontend && npm install && npm run dev
 
 ## Demo Credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@dms.com` | `123` |
-| User | `user@dms.com` | `123` |
+| Role | Email | Password | Status |
+|------|-------|----------|--------|
+| Admin | `admin@dms.com` | `123` | Active |
+| User | `user@dms.com` | `123` | Active |
+
+Note: If admin account is suspended, activate it via API:
+```bash
+curl -X PATCH http://localhost:8080/api/users/1 \
+  -H "Content-Type: application/json" \
+  -d '{"status":"active"}'
+```
 
 ## API Reference
 
-All endpoints are accessed through the Gateway at `:8080`.
+All endpoints are accessed through the Gateway at `:8080` or via the frontend proxy at `:3000/api`.
+
+### Health Check
+
+```bash
+# Gateway health
+curl http://localhost:8080/health
+
+# Test API connectivity
+curl http://localhost:3000/api/users
+```
 
 ### Documents
 
@@ -234,8 +259,6 @@ comments (id, document_id, user_name, text, created_at)
 
 ---
 
-<div align="center">
-<sub>Built with Spring Boot · React · PostgreSQL · Apache Kafka · Docker · Kubernetes</sub>
-<br>
-<sub>Enterprise Computing — ENSIA — Samir Guenchii · 2026</sub>
-</div>
+Built with Spring Boot, React, PostgreSQL, Apache Kafka, Docker, Kubernetes
+
+Enterprise Computing - ENSIA - 2026
