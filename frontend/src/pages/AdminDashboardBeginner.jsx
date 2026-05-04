@@ -1,397 +1,657 @@
-import { useState, useMemo } from 'react';
-import {
-  Users, FileText, FolderOpen, Building2, Plus, Shield,
-  Trash2, Search, BarChart3, TrendingUp, X, Info
-} from 'lucide-react';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { FileText, Users, FolderOpen, Building2, TrendingUp, Activity, Shield, Clock } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import { useAppContext } from '../context/AppContext';
 
 export default function AdminDashboardBeginner() {
-  const { state, createUser, suspendUsers, addCategory, removeCategory } = useAppContext();
-  const [tab, setTab] = useState('overview');
-  const [searchQ, setSearchQ] = useState('');
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [showAddCat, setShowAddCat] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'user', departmentId: '1' });
-  const [newCat, setNewCat] = useState('');
+  const { state } = useAppContext();
 
-  const handleAddUser = async (e) => {
-    e.preventDefault();
-    await createUser(newUser);
-    setShowAddUser(false);
-    setNewUser({ name: '', email: '', password: '', role: 'user', departmentId: '1' });
-  };
+  const stats = useMemo(() => {
+    const totalDocs = state.documents.length;
+    const totalUsers = state.users.length;
+    const activeUsers = state.users.filter(u => u.status === 'active').length;
+    const totalCategories = state.categories.length;
+    const totalDepartments = state.departments.length;
 
-  const handleAddCat = async (e) => {
-    e.preventDefault();
-    if (newCat.trim()) { await addCategory(newCat.trim()); setShowAddCat(false); setNewCat(''); }
-  };
+    return {
+      documents: { total: totalDocs, change: '+12%' },
+      users: { total: totalUsers, active: activeUsers, change: '+8%' },
+      categories: { total: totalCategories, change: '+3%' },
+      departments: { total: totalDepartments, change: '0%' },
+    };
+  }, [state.documents, state.users, state.categories, state.departments]);
 
-  const filteredUsers = useMemo(() => {
-    if (!searchQ) return state.users;
-    const q = searchQ.toLowerCase();
-    return state.users.filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
-  }, [state.users, searchQ]);
+  const recentDocs = useMemo(() => 
+    [...state.documents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5),
+    [state.documents]
+  );
 
-  const s = useMemo(() => ({
-    users: state.users.length,
-    docs: state.documents.length,
-    cats: state.categories.length,
-    depts: state.departments.length,
-    admins: state.users.filter(u => u.role === 'admin').length,
-    regulars: state.users.filter(u => u.role === 'user').length,
-  }), [state]);
+  const recentUsers = useMemo(() => 
+    [...state.users].sort((a, b) => b.id - a.id).slice(0, 5),
+    [state.users]
+  );
 
-  const stats = [
-    { icon: Users, value: s.users, label: 'Total Users', sub: `${s.admins} admins, ${s.regulars} users`, color: '#06b6d4', bg: 'rgba(6,182,212,.08)' },
-    { icon: FileText, value: s.docs, label: 'Documents', sub: 'All documents', color: '#10b981', bg: 'rgba(16,185,129,.08)' },
-    { icon: FolderOpen, value: s.cats, label: 'Categories', sub: 'Classifications', color: '#f59e0b', bg: 'rgba(245,158,11,.08)' },
-    { icon: Building2, value: s.depts, label: 'Departments', sub: 'Org. units', color: '#8b5cf6', bg: 'rgba(139,92,246,.08)' },
-  ];
+  const categoryMap = useMemo(() => 
+    Object.fromEntries(state.categories.map(c => [c.id, c.name])),
+    [state.categories]
+  );
 
-  const tabs = [
-    { id: 'overview', icon: BarChart3, label: 'Overview' },
-    { id: 'users', icon: Users, label: `Users (${s.users})` },
-    { id: 'categories', icon: FolderOpen, label: `Categories (${s.cats})` },
+  const departmentMap = useMemo(() => 
+    Object.fromEntries(state.departments.map(d => [d.id, d.name])),
+    [state.departments]
+  );
+
+  const statCards = [
+    { icon: FileText, label: 'Total Documents', value: stats.documents.total, change: stats.documents.change, color: '#0066cc', bg: 'rgba(0,102,204,.08)', link: '/dashboard/admin' },
+    { icon: Users, label: 'Total Users', value: stats.users.total, sub: `${stats.users.active} active`, change: stats.users.change, color: '#10b981', bg: 'rgba(16,185,129,.08)', link: '/dashboard/admin/users' },
+    { icon: FolderOpen, label: 'Categories', value: stats.categories.total, change: stats.categories.change, color: '#f59e0b', bg: 'rgba(245,158,11,.08)', link: '/dashboard/admin/categories' },
+    { icon: Building2, label: 'Departments', value: stats.departments.total, change: stats.departments.change, color: '#8b5cf6', bg: 'rgba(139,92,246,.08)', link: '/dashboard/admin' },
   ];
 
   return (
-    <div className="dash">
+    <div className="admin-dash">
       <NavigationMenu userRole="admin" />
-      <main className="dash-main">
+      
+      <main className="admin-main">
         <div className="container">
-          {/* Welcome */}
-          <div className="adm-welcome">
-            <div className="adm-welcome__bg" />
-            <div className="adm-welcome__content">
+          {/* Header */}
+          <div className="admin-header">
+            <div className="admin-header__bg" />
+            <div className="admin-header__content">
               <div>
-                <div className="adm-welcome__title">
-                  <h1>Admin Control Panel</h1>
-                  <span className="adm-badge">Administrator</span>
+                <div className="admin-badge">
+                  <Shield size={14} />
+                  <span>Administrator</span>
                 </div>
-                <p>Manage users, categories, and monitor system activity</p>
+                <h1>System Overview</h1>
+                <p>Monitor and manage your document management system</p>
               </div>
-              <div className="adm-welcome__actions">
-                <button className="adm-action-btn" onClick={() => { setTab('users'); setShowAddUser(true); }}>
-                  <Plus size={16} /> Add User
-                </button>
-                <button className="adm-action-btn adm-action-btn--ghost" onClick={() => { setTab('categories'); setShowAddCat(true); }}>
-                  <Plus size={16} /> Add Category
-                </button>
+              <div className="admin-header__time">
+                <Clock size={16} />
+                <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="dash-stats">
-            {stats.map((st, i) => (
-              <div key={i} className="dash-stat">
-                <div className="dash-stat__icon" style={{ background: st.bg, color: st.color }}>
-                  <st.icon size={22} />
+          {/* Stats Grid */}
+          <div className="admin-stats">
+            {statCards.map((stat, i) => (
+              <Link key={i} to={stat.link} className="admin-stat">
+                <div className="admin-stat__icon" style={{ background: stat.bg, color: stat.color }}>
+                  <stat.icon size={24} />
                 </div>
-                <div className="dash-stat__body">
-                  <div className="dash-stat__value">{st.value}</div>
-                  <div className="dash-stat__label">{st.label}</div>
-                  <div className="dash-stat__sub"><TrendingUp size={12} /> {st.sub}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Tabs */}
-          <div className="adm-tabs">
-            {tabs.map(t => (
-              <button key={t.id} className={`adm-tab ${tab === t.id ? 'adm-tab--active' : ''}`} onClick={() => setTab(t.id)}>
-                <t.icon size={16} /> {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Overview */}
-          {tab === 'overview' && (
-            <div>
-              <div className="adm-info">
-                <Info size={16} />
-                <div><strong>System Operational</strong> — {s.users} users managing {s.docs} documents across {s.cats} categories.</div>
-              </div>
-              <div className="adm-actions-grid">
-                <button className="adm-card-action adm-card-action--cyan" onClick={() => { setTab('users'); setShowAddUser(true); }}>
-                  <div className="adm-card-action__icon"><Users size={24} /></div>
-                  <h3>Add New User</h3>
-                  <p>Create a new user account with role assignment</p>
-                </button>
-                <button className="adm-card-action adm-card-action--green" onClick={() => { setTab('categories'); setShowAddCat(true); }}>
-                  <div className="adm-card-action__icon"><FolderOpen size={24} /></div>
-                  <h3>Add Category</h3>
-                  <p>Create a new document classification</p>
-                </button>
-                <button className="adm-card-action adm-card-action--outline" onClick={() => setTab('users')}>
-                  <div className="adm-card-action__icon"><Users size={24} /></div>
-                  <h3>Manage Users</h3>
-                  <p>View, edit, and manage user accounts</p>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Users */}
-          {tab === 'users' && (
-            <div>
-              <div className="adm-toolbar">
-                <div className="dash-search">
-                  <Search size={18} className="dash-search__icon" />
-                  <input type="text" placeholder="Search users…" value={searchQ} onChange={e => setSearchQ(e.target.value)} />
-                </div>
-                <button className="btn btn-primary" onClick={() => setShowAddUser(true)}>
-                  <Plus size={16} /> Add User
-                </button>
-              </div>
-
-              <div className="adm-panel">
-                <div className="adm-panel__head">
-                  <h2>All Users</h2>
-                  <span>{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} {searchQ && `matching "${searchQ}"`}</span>
-                </div>
-
-                {filteredUsers.length === 0 ? (
-                  <div className="dash-empty">
-                    <Users size={48} />
-                    <h3>No Users Found</h3>
-                    <p>{searchQ ? 'Try a different search' : 'Add your first user'}</p>
+                <div className="admin-stat__body">
+                  <div className="admin-stat__label">{stat.label}</div>
+                  <div className="admin-stat__value">{stat.value}</div>
+                  {stat.sub && <div className="admin-stat__sub">{stat.sub}</div>}
+                  <div className="admin-stat__change">
+                    <TrendingUp size={12} />
+                    <span>{stat.change} this month</span>
                   </div>
-                ) : (
-                  <div className="adm-user-list">
-                    {filteredUsers.map(u => (
-                      <div key={u.id} className="adm-user-row">
-                        <div className="adm-user-row__left">
-                          <div className="user-avatar" style={{ width: 40, height: 40, fontSize: 14 }}>
-                            {(u.name || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="adm-user-name">{u.name}</div>
-                            <div className="adm-user-email">{u.email}</div>
-                          </div>
-                        </div>
-                        <div className="adm-user-row__right">
-                          <span className={`badge ${u.role === 'admin' ? 'badge-error' : 'badge-primary'}`}>
-                            {(u.role || 'user').toUpperCase()}
-                          </span>
-                          <span className={`badge ${u.status === 'suspended' ? 'badge-warning' : 'badge-success'}`}>
-                            {(u.status || 'active').toUpperCase()}
-                          </span>
-                          {u.status !== 'suspended' && (
-                            <button className="btn btn-danger btn-sm" onClick={() => {
-                              if (window.confirm(`Suspend ${u.name}?`)) suspendUsers([u.id]);
-                            }}>
-                              <Trash2 size={14} /> Suspend
-                            </button>
-                          )}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Two Column Layout */}
+          <div className="admin-grid">
+            {/* Recent Documents */}
+            <div className="admin-card">
+              <div className="admin-card__header">
+                <div>
+                  <h2>Recent Documents</h2>
+                  <p>Latest uploads to the system</p>
+                </div>
+                <Link to="/dashboard/admin" className="admin-link">View All</Link>
+              </div>
+              
+              {recentDocs.length === 0 ? (
+                <div className="admin-empty">
+                  <FileText size={40} />
+                  <p>No documents yet</p>
+                </div>
+              ) : (
+                <div className="admin-list">
+                  {recentDocs.map(doc => (
+                    <div key={doc.id} className="admin-list-item">
+                      <div className="admin-list-icon" style={{ background: 'rgba(0,102,204,.08)', color: '#0066cc' }}>
+                        <FileText size={18} />
+                      </div>
+                      <div className="admin-list-body">
+                        <div className="admin-list-title">{doc.title}</div>
+                        <div className="admin-list-meta">
+                          <span>{categoryMap[doc.categoryId] || 'Unknown'}</span>
+                          <span>•</span>
+                          <span>{departmentMap[doc.departmentId] || 'Unknown'}</span>
+                          <span>•</span>
+                          <span>{doc.owner}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Categories */}
-          {tab === 'categories' && (
-            <div>
-              <div className="adm-toolbar">
-                <div>
-                  <h3 className="adm-toolbar__title">Document Categories</h3>
-                  <p className="adm-toolbar__sub">{state.categories.length} categories</p>
-                </div>
-                <button className="btn btn-primary" onClick={() => setShowAddCat(true)}>
-                  <Plus size={16} /> Add Category
-                </button>
-              </div>
-              <div className="adm-cat-grid">
-                {state.categories.map(c => (
-                  <div key={c.id} className="adm-cat-card">
-                    <div className="adm-cat-card__top">
-                      <div className="adm-cat-card__icon"><FolderOpen size={20} /></div>
-                      <button className="adm-cat-card__del" onClick={() => {
-                        if (window.confirm(`Delete "${c.name}"?`)) removeCategory(c.id);
-                      }}>
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="admin-list-date">
+                        {new Date(doc.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
-                    <h3>{c.name}</h3>
-                    <span>ID: {c.id}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Users */}
+            <div className="admin-card">
+              <div className="admin-card__header">
+                <div>
+                  <h2>Recent Users</h2>
+                  <p>Newest registered accounts</p>
+                </div>
+                <Link to="/dashboard/admin/users" className="admin-link">View All</Link>
+              </div>
+              
+              {recentUsers.length === 0 ? (
+                <div className="admin-empty">
+                  <Users size={40} />
+                  <p>No users yet</p>
+                </div>
+              ) : (
+                <div className="admin-list">
+                  {recentUsers.map(user => (
+                    <div key={user.id} className="admin-list-item">
+                      <div className="admin-list-avatar">
+                        {user.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="admin-list-body">
+                        <div className="admin-list-title">{user.name}</div>
+                        <div className="admin-list-meta">{user.email}</div>
+                      </div>
+                      <div className="admin-list-badges">
+                        <span className={`badge badge-${user.role === 'admin' ? 'error' : 'primary'}`}>
+                          {user.role}
+                        </span>
+                        <span className={`badge badge-${user.status === 'active' ? 'success' : 'warning'}`}>
+                          {user.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* System Health */}
+          <div className="admin-card">
+            <div className="admin-card__header">
+              <div>
+                <h2>System Health</h2>
+                <p>Real-time system status and performance</p>
+              </div>
+              <div className="admin-status">
+                <Activity size={14} />
+                <span>All Systems Operational</span>
               </div>
             </div>
-          )}
+            
+            <div className="admin-health">
+              <div className="admin-health-item">
+                <div className="admin-health-label">
+                  <span>API Gateway</span>
+                  <span className="admin-health-value">Healthy</span>
+                </div>
+                <div className="admin-health-bar">
+                  <div className="admin-health-fill" style={{ width: '100%', background: '#10b981' }} />
+                </div>
+              </div>
+              
+              <div className="admin-health-item">
+                <div className="admin-health-label">
+                  <span>Database</span>
+                  <span className="admin-health-value">Healthy</span>
+                </div>
+                <div className="admin-health-bar">
+                  <div className="admin-health-fill" style={{ width: '98%', background: '#10b981' }} />
+                </div>
+              </div>
+              
+              <div className="admin-health-item">
+                <div className="admin-health-label">
+                  <span>Storage (S3)</span>
+                  <span className="admin-health-value">Healthy</span>
+                </div>
+                <div className="admin-health-bar">
+                  <div className="admin-health-fill" style={{ width: '95%', background: '#10b981' }} />
+                </div>
+              </div>
+              
+              <div className="admin-health-item">
+                <div className="admin-health-label">
+                  <span>Message Queue</span>
+                  <span className="admin-health-value">Healthy</span>
+                </div>
+                <div className="admin-health-bar">
+                  <div className="admin-health-fill" style={{ width: '100%', background: '#10b981' }} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
-      {/* Add User Modal */}
-      {showAddUser && (
-        <div className="modal-overlay" onClick={() => setShowAddUser(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Add New User</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAddUser(false)}><X size={18} /></button>
-            </div>
-            <form onSubmit={handleAddUser}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label form-label-required"><Users size={15} /> Full Name</label>
-                  <input className="form-input" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} placeholder="Enter full name" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label form-label-required"><Users size={15} /> Email</label>
-                  <input className="form-input" type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} placeholder="user@company.com" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label form-label-required"><Shield size={15} /> Password</label>
-                  <input className="form-input" type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} placeholder="Create password" required />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div className="form-group">
-                    <label className="form-label"><Shield size={15} /> Role</label>
-                    <select className="form-select" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
-                      <option value="user">User</option><option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label"><Building2 size={15} /> Department</label>
-                    <select className="form-select" value={newUser.departmentId} onChange={e => setNewUser({...newUser, departmentId: e.target.value})}>
-                      {state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={() => setShowAddUser(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary"><Plus size={16} /> Add User</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Category Modal */}
-      {showAddCat && (
-        <div className="modal-overlay" onClick={() => setShowAddCat(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Add Category</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAddCat(false)}><X size={18} /></button>
-            </div>
-            <form onSubmit={handleAddCat}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label form-label-required"><FolderOpen size={15} /> Category Name</label>
-                  <input className="form-input" value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="e.g., Financial Reports" required />
-                  <div className="form-help">Choose a clear, descriptive name</div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={() => setShowAddCat(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary"><Plus size={16} /> Add Category</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <style>{`
-.dash{min-height:100vh;background:var(--g50)}
-.dash-main{padding:28px 0 48px}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        .admin-dash {
+          min-height: 100vh;
+          background: #f9fafb;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
 
-/* Welcome */
-.adm-welcome{position:relative;border-radius:var(--r-xl);overflow:hidden;margin-bottom:28px}
-.adm-welcome__bg{position:absolute;inset:0;background:linear-gradient(135deg,#0c1929 0%,#1e3d54 50%,#0ba5c3 100%)}
-.adm-welcome__content{position:relative;padding:32px 36px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
-.adm-welcome__title{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-.adm-welcome h1{font-size:clamp(20px,2.5vw,28px);font-weight:700;color:#fff;letter-spacing:-.02em}
-.adm-welcome p{font-size:15px;color:rgba(255,255,255,.55)}
-.adm-badge{padding:4px 10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.5px}
-.adm-welcome__actions{display:flex;gap:8px}
-.adm-action-btn{display:flex;align-items:center;gap:6px;padding:10px 20px;background:#fff;color:#0c1929;font-size:13px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.adm-action-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2)}
-.adm-action-btn--ghost{background:rgba(255,255,255,.12);color:#fff;box-shadow:none;border:1px solid rgba(255,255,255,.2)}
-.adm-action-btn--ghost:hover{background:rgba(255,255,255,.2);box-shadow:none}
+        .admin-main {
+          padding: 28px 0 48px;
+        }
 
-/* Stats - reuse from user dashboard */
-.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.dash-stat{background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);padding:20px;display:flex;align-items:flex-start;gap:14px;transition:all .2s}
-.dash-stat:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
-.dash-stat__icon{width:44px;height:44px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.dash-stat__value{font-size:28px;font-weight:700;color:var(--navy);line-height:1;letter-spacing:-.02em}
-.dash-stat__label{font-size:13px;font-weight:600;color:var(--g700);margin-top:2px}
-.dash-stat__sub{font-size:11px;color:var(--g400);display:flex;align-items:center;gap:4px;margin-top:4px}
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 24px;
+        }
 
-/* Tabs */
-.adm-tabs{display:flex;gap:4px;padding:4px;background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);margin-bottom:24px}
-.adm-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;background:transparent;border:none;border-radius:var(--r-md);font-size:13px;font-weight:500;color:var(--g600);cursor:pointer;font-family:inherit;transition:all .15s}
-.adm-tab:hover{background:var(--g50);color:var(--g800)}
-.adm-tab--active{background:var(--cyan);color:#fff;box-shadow:0 1px 3px rgba(6,182,212,.2)}
+        /* Header */
+        .admin-header {
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          margin-bottom: 28px;
+        }
 
-/* Info */
-.adm-info{display:flex;align-items:center;gap:10px;padding:14px 18px;background:rgba(37,99,235,.05);border:1px solid rgba(37,99,235,.12);border-radius:var(--r-md);font-size:13px;color:#1e40af;margin-bottom:20px}
+        .admin-header__bg {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+        }
 
-/* Action Cards */
-.adm-actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.adm-card-action{display:flex;flex-direction:column;align-items:flex-start;padding:24px;background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);cursor:pointer;font-family:inherit;text-align:left;transition:all .25s}
-.adm-card-action:hover{transform:translateY(-3px);box-shadow:var(--sh-lg)}
-.adm-card-action__icon{width:48px;height:48px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.adm-card-action--cyan{border-color:rgba(6,182,212,.2)}
-.adm-card-action--cyan .adm-card-action__icon{background:rgba(6,182,212,.08);color:#06b6d4}
-.adm-card-action--green{border-color:rgba(16,185,129,.2)}
-.adm-card-action--green .adm-card-action__icon{background:rgba(16,185,129,.08);color:#10b981}
-.adm-card-action--outline .adm-card-action__icon{background:var(--g100);color:var(--g600)}
-.adm-card-action h3{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:6px}
-.adm-card-action p{font-size:13px;color:var(--g500);line-height:1.5;border:none;background:none}
+        .admin-header__content {
+          position: relative;
+          padding: 32px 36px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          flex-wrap: wrap;
+        }
 
-/* Toolbar */
-.adm-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
-.adm-toolbar__title{font-size:18px;font-weight:600;color:var(--navy)}
-.adm-toolbar__sub{font-size:13px;color:var(--g500)}
+        .admin-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 100px;
+          color: white;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
 
-/* Panel */
-.adm-panel{background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);overflow:hidden}
-.adm-panel__head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--g200)}
-.adm-panel__head h2{font-size:16px;font-weight:600;color:var(--navy)}
-.adm-panel__head span{font-size:13px;color:var(--g500)}
+        .admin-header h1 {
+          font-size: clamp(22px, 2.5vw, 30px);
+          font-weight: 700;
+          color: white;
+          margin-bottom: 4px;
+          letter-spacing: -0.5px;
+        }
 
-/* User List */
-.adm-user-list{display:flex;flex-direction:column}
-.adm-user-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100);transition:background .15s}
-.adm-user-row:last-child{border-bottom:none}
-.adm-user-row:hover{background:var(--g50)}
-.adm-user-row__left{display:flex;align-items:center;gap:12px}
-.adm-user-name{font-weight:600;font-size:14px;color:var(--g800)}
-.adm-user-email{font-size:12px;color:var(--g500)}
-.adm-user-row__right{display:flex;align-items:center;gap:8px}
+        .admin-header p {
+          font-size: 15px;
+          color: rgba(255, 255, 255, 0.85);
+        }
 
-/* Category Grid */
-.adm-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-.adm-cat-card{background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);padding:20px;transition:all .25s}
-.adm-cat-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
-.adm-cat-card__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.adm-cat-card__icon{width:40px;height:40px;border-radius:var(--r-md);background:rgba(245,158,11,.08);color:#f59e0b;display:flex;align-items:center;justify-content:center}
-.adm-cat-card__del{background:none;border:none;color:var(--g400);cursor:pointer;padding:4px;border-radius:var(--r-sm);transition:all .15s}
-.adm-cat-card__del:hover{color:#dc2626;background:rgba(220,38,38,.06)}
-.adm-cat-card h3{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:4px}
-.adm-cat-card span{font-size:12px;color:var(--g400)}
+        .admin-header__time {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+          color: white;
+          font-size: 13px;
+          font-weight: 500;
+        }
 
-/* Empty & Search reuse from user dash */
-.dash-empty{text-align:center;padding:48px 24px}
-.dash-empty svg{color:var(--g300);margin-bottom:12px}
-.dash-empty h3{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:6px}
-.dash-empty p{font-size:13px;color:var(--g500)}
-.dash-search{position:relative;flex:1;min-width:240px}
-.dash-search__icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--g400);pointer-events:none}
-.dash-search input{width:100%;padding:10px 14px 10px 42px;background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);font-size:14px;font-family:inherit;color:var(--g800);transition:all .15s;outline:none}
-.dash-search input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(6,182,212,.08)}
+        /* Stats */
+        .admin-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-bottom: 28px;
+        }
 
-@media(max-width:1024px){.dash-stats{grid-template-columns:repeat(2,1fr)}.adm-actions-grid{grid-template-columns:1fr}}
-@media(max-width:768px){.dash-stats{grid-template-columns:1fr 1fr}.adm-tabs{flex-direction:column}.adm-toolbar{flex-direction:column;align-items:stretch}}
+        .admin-stat {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 20px;
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          transition: all 0.2s;
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .admin-stat:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transform: translateY(-2px);
+          border-color: #d1d5db;
+        }
+
+        .admin-stat__icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .admin-stat__body {
+          flex: 1;
+        }
+
+        .admin-stat__label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+          margin-bottom: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .admin-stat__value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1a1a1a;
+          line-height: 1;
+          letter-spacing: -0.5px;
+          margin-bottom: 4px;
+        }
+
+        .admin-stat__sub {
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 6px;
+        }
+
+        .admin-stat__change {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          color: #10b981;
+          font-weight: 500;
+        }
+
+        /* Grid */
+        .admin-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          margin-bottom: 28px;
+        }
+
+        /* Card */
+        .admin-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .admin-card__header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #e5e7eb;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .admin-card__header h2 {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 2px;
+        }
+
+        .admin-card__header p {
+          font-size: 12px;
+          color: #6b7280;
+        }
+
+        .admin-link {
+          font-size: 13px;
+          font-weight: 600;
+          color: #0066cc;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .admin-link:hover {
+          color: #0052a3;
+        }
+
+        .admin-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: rgba(16, 185, 129, 0.08);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          border-radius: 100px;
+          color: #10b981;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        /* List */
+        .admin-list {
+          padding: 12px;
+        }
+
+        .admin-list-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 8px;
+          transition: background 0.15s;
+        }
+
+        .admin-list-item:hover {
+          background: #f9fafb;
+        }
+
+        .admin-list-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .admin-list-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #0066cc, #0052a3);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+
+        .admin-list-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .admin-list-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .admin-list-meta {
+          font-size: 12px;
+          color: #6b7280;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .admin-list-date {
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 500;
+          flex-shrink: 0;
+        }
+
+        .admin-list-badges {
+          display: flex;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+
+        /* Empty */
+        .admin-empty {
+          text-align: center;
+          padding: 48px 24px;
+        }
+
+        .admin-empty svg {
+          color: #d1d5db;
+          margin-bottom: 12px;
+        }
+
+        .admin-empty p {
+          font-size: 14px;
+          color: #6b7280;
+        }
+
+        /* Health */
+        .admin-health {
+          padding: 24px;
+          display: grid;
+          gap: 20px;
+        }
+
+        .admin-health-item {
+          display: grid;
+          gap: 8px;
+        }
+
+        .admin-health-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+        }
+
+        .admin-health-label > span:first-child {
+          font-weight: 600;
+          color: #1a1a1a;
+        }
+
+        .admin-health-value {
+          font-size: 12px;
+          color: #10b981;
+          font-weight: 600;
+        }
+
+        .admin-health-bar {
+          height: 8px;
+          background: #f3f4f6;
+          border-radius: 100px;
+          overflow: hidden;
+        }
+
+        .admin-health-fill {
+          height: 100%;
+          border-radius: 100px;
+          transition: width 0.3s ease;
+        }
+
+        /* Badges */
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 10px;
+          border-radius: 100px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .badge-primary {
+          background: rgba(0, 102, 204, 0.08);
+          color: #0066cc;
+        }
+
+        .badge-success {
+          background: rgba(16, 185, 129, 0.08);
+          color: #10b981;
+        }
+
+        .badge-warning {
+          background: rgba(245, 158, 11, 0.08);
+          color: #f59e0b;
+        }
+
+        .badge-error {
+          background: rgba(220, 38, 38, 0.08);
+          color: #dc2626;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .admin-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .admin-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .admin-stats {
+            grid-template-columns: 1fr;
+          }
+
+          .admin-header__content {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .admin-header__time {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

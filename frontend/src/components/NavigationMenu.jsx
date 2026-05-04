@@ -40,12 +40,9 @@ export default function NavigationMenu({ userRole = 'user' }) {
       <header className="app-header">
         <div className="header-content">
           <Link to={userRole === 'admin' ? '/dashboard/admin' : '/dashboard/user'} className="app-logo">
-            <div className="app-logo-icon">
-              <img src="/logo_dms.png" alt="DMS" />
-            </div>
             <div className="nav-brand-text">
-              <span>DocVault</span>
-              <div className="status-indicator">Operational</div>
+              <span className="logo-text">DocVault</span>
+              <span className="logo-subtitle">DMS</span>
             </div>
           </Link>
 
@@ -129,11 +126,15 @@ export default function NavigationMenu({ userRole = 'user' }) {
 
       <style>{`
         .nav-brand-text {
-          display: flex; flex-direction: column;
+          display: flex; align-items: baseline; gap: 6px;
         }
-        .nav-brand-text span {
-          font-size: var(--text-md); font-weight: 700; color: var(--navy);
-          line-height: 1.2;
+        .logo-text {
+          font-size: 20px; font-weight: 700; color: #0066cc;
+          line-height: 1; letter-spacing: -0.5px;
+        }
+        .logo-subtitle {
+          font-size: 13px; font-weight: 600; color: #666;
+          line-height: 1;
         }
 
         .nav-pill {
@@ -191,7 +192,6 @@ export default function NavigationMenu({ userRole = 'user' }) {
           .desktop-nav { display: none !important; }
           .mobile-menu-btn { display: flex !important; }
           .user-menu-name { display: none; }
-          .nav-brand-text .status-indicator { display: none; }
         }
         @media (min-width: 769px) {
           .mobile-menu { display: none !important; }

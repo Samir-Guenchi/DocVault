@@ -104,10 +104,10 @@ export default function AdminExportPage() {
 
   const getColorClass = (color) => {
     const colors = {
-      blue: { bg: 'var(--primary-blue-bg)', text: 'var(--primary-blue)' },
-      green: { bg: 'var(--success-green-bg)', text: 'var(--success-green)' },
-      orange: { bg: 'var(--warning-orange-bg)', text: 'var(--warning-orange)' },
-      purple: { bg: '#ede9fe', text: '#7c3aed' }
+      blue: { bg: '#eff6ff', text: '#0066cc' },
+      green: { bg: '#f0fdf4', text: '#10b981' },
+      orange: { bg: '#fff7ed', text: '#f59e0b' },
+      purple: { bg: '#ede9fe', text: '#8b5cf6' }
     };
     return colors[color] || colors.blue;
   };
@@ -119,10 +119,10 @@ export default function AdminExportPage() {
       <main className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-8)' }}>
         {/* Page Header */}
         <div style={{ marginBottom: 'var(--space-8)' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: 'var(--space-2)', color: 'var(--gray-900)' }}>
-            Admin Data Export 📊
+          <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: 'var(--space-2)', color: '#1a1a1a', letterSpacing: '-0.5px' }}>
+            Admin Data Export
           </h1>
-          <p style={{ fontSize: '1.0625rem', color: 'var(--gray-600)' }}>
+          <p style={{ fontSize: '1.0625rem', color: '#6b7280' }}>
             Export system data in CSV or Excel format for reporting and analysis
           </p>
         </div>
@@ -156,8 +156,8 @@ export default function AdminExportPage() {
               onClick={() => setSelectedFormat('csv')}
               style={{
                 cursor: 'pointer',
-                border: selectedFormat === 'csv' ? '3px solid var(--primary-blue)' : '2px solid var(--gray-200)',
-                background: selectedFormat === 'csv' ? 'var(--primary-blue-bg)' : 'white',
+                border: selectedFormat === 'csv' ? '3px solid #0066cc' : '2px solid var(--gray-200)',
+                background: selectedFormat === 'csv' ? '#eff6ff' : 'white',
                 textAlign: 'center',
                 padding: 'var(--space-6)'
               }}
@@ -166,7 +166,7 @@ export default function AdminExportPage() {
                 width: '64px',
                 height: '64px',
                 margin: '0 auto var(--space-4)',
-                background: selectedFormat === 'csv' ? 'var(--primary-blue)' : 'var(--gray-200)',
+                background: selectedFormat === 'csv' ? '#0066cc' : 'var(--gray-200)',
                 color: selectedFormat === 'csv' ? 'white' : 'var(--gray-600)',
                 borderRadius: 'var(--radius-lg)',
                 display: 'flex',
@@ -193,8 +193,8 @@ export default function AdminExportPage() {
               onClick={() => setSelectedFormat('xls')}
               style={{
                 cursor: 'pointer',
-                border: selectedFormat === 'xls' ? '3px solid var(--success-green)' : '2px solid var(--gray-200)',
-                background: selectedFormat === 'xls' ? 'var(--success-green-bg)' : 'white',
+                border: selectedFormat === 'xls' ? '3px solid #10b981' : '2px solid var(--gray-200)',
+                background: selectedFormat === 'xls' ? '#f0fdf4' : 'white',
                 textAlign: 'center',
                 padding: 'var(--space-6)'
               }}
@@ -203,7 +203,7 @@ export default function AdminExportPage() {
                 width: '64px',
                 height: '64px',
                 margin: '0 auto var(--space-4)',
-                background: selectedFormat === 'xls' ? 'var(--success-green)' : 'var(--gray-200)',
+                background: selectedFormat === 'xls' ? '#10b981' : 'var(--gray-200)',
                 color: selectedFormat === 'xls' ? 'white' : 'var(--gray-600)',
                 borderRadius: 'var(--radius-lg)',
                 display: 'flex',
@@ -285,9 +285,9 @@ export default function AdminExportPage() {
         </div>
 
         {/* Info Section */}
-        <div className="card" style={{ marginTop: 'var(--space-8)', background: 'var(--primary-blue-bg)', border: '2px solid var(--primary-blue)' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: 'var(--space-4)', color: 'var(--primary-blue)' }}>
-            🔒 Admin Export Features
+        <div className="card" style={{ marginTop: 'var(--space-8)', background: '#eff6ff', border: '2px solid #0066cc' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: 'var(--space-4)', color: '#0066cc' }}>
+            Admin Export Features
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-4)' }}>
             <div>

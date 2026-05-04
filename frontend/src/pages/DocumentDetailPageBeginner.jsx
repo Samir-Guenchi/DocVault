@@ -99,7 +99,7 @@ export default function DocumentDetailPageBeginner() {
         {/* Document Header */}
         <div className="card" style={{ marginBottom: 'var(--s5)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--s4)', marginBottom: 'var(--s5)' }}>
-            <div className="document-icon" style={{ width: 56, height: 56, flexShrink: 0 }}>
+            <div className="document-icon" style={{ width: 56, height: 56, flexShrink: 0, background: 'linear-gradient(135deg, #0066cc, #0052a3)', color: '#fff', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <FileText size={28} />
             </div>
             <div style={{ flex: 1 }}>
