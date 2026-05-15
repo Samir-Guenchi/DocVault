@@ -5,6 +5,7 @@ import com.example.demo.event.DocumentUploadedEvent;
 import com.example.demo.repository.DocumentRepository;
 import com.example.demo.service.DocumentEventPublisher;
 import com.example.demo.service.S3StorageService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,18 +32,63 @@ public class DocumentController {
     }
 
     @GetMapping
-    public List<Document> getAll() {
-        return repo.findAll();
+    public ResponseEntity<List<Document>> getAll(HttpServletRequest request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> userDepartments = (List<Integer>) request.getAttribute("userDepartments");
+        List<String> userRoles = (List<String>) request.getAttribute("userRoles");
+        
+        // Admin can see all documents
+        if (userRoles != null && userRoles.contains("admin")) {
+            return ResponseEntity.ok(repo.findAll());
+        }
+        
+        // Users see only documents from their departments
+        if (userDepartments == null || userDepartments.isEmpty()) {
+            return ResponseEntity.ok(List.of()); // No departments = no documents
+        }
+        
+        List<Long> deptIds = userDepartments.stream().map(Long::valueOf).toList();
+        return ResponseEntity.ok(repo.findByDepartmentIdIn(deptIds));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Document> getById(@PathVariable Long id) {
-        return repo.findById(id).map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getById(@PathVariable Long id, HttpServletRequest request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> userDepartments = (List<Integer>) request.getAttribute("userDepartments");
+        List<String> userRoles = (List<String>) request.getAttribute("userRoles");
+        
+        return repo.findById(id).map(doc -> {
+            // Admin can see all documents
+            if (userRoles != null && userRoles.contains("admin")) {
+                return ResponseEntity.ok(doc);
+            }
+            
+            // Check if user has access to this document's department
+            if (userDepartments != null && userDepartments.contains(doc.getDepartmentId().intValue())) {
+                return ResponseEntity.ok(doc);
+            }
+            
+            // 403 Forbidden (not 404) - document exists but user doesn't have access
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Access denied to this document"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Document> create(@RequestBody Document doc) {
+    public ResponseEntity<Document> create(@RequestBody Document doc, HttpServletRequest request) {
+        // SECURITY: Extract owner from JWT, never trust request body
+        Long ownerId = (Long) request.getAttribute("userId");
+        String ownerEmail = (String) request.getAttribute("userEmail");
+        String ownerName = (String) request.getAttribute("userName");
+        
+        if (ownerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // Set owner information from JWT
+        doc.setOwnerId(ownerId);
+        doc.setOwner(ownerName != null ? ownerName : ownerEmail);
+        
         if (doc.getCreatedAt() == null) doc.setCreatedAt(LocalDate.now());
         Document saved = repo.save(doc);
 
@@ -63,8 +109,17 @@ public class DocumentController {
             @RequestParam(value = "description", required = false, defaultValue = "") String description,
             @RequestParam(value = "categoryId", required = false, defaultValue = "1") Long categoryId,
             @RequestParam(value = "departmentId", required = false, defaultValue = "1") Long departmentId,
-            @RequestParam(value = "owner", required = false, defaultValue = "Unknown") String owner,
-            @RequestParam(value = "sensitivity", required = false, defaultValue = "internal") String sensitivity) {
+            @RequestParam(value = "sensitivity", required = false, defaultValue = "internal") String sensitivity,
+            HttpServletRequest request) {
+
+        // SECURITY: Extract owner from JWT, never trust request parameters
+        Long ownerId = (Long) request.getAttribute("userId");
+        String ownerEmail = (String) request.getAttribute("userEmail");
+        String ownerName = (String) request.getAttribute("userName");
+        
+        if (ownerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         try {
             // Upload file to S3/MinIO
@@ -81,7 +136,8 @@ public class DocumentController {
             Document doc = new Document();
             doc.setTitle(title);
             doc.setDescription(description);
-            doc.setOwner(owner);
+            doc.setOwner(ownerName != null ? ownerName : ownerEmail);
+            doc.setOwnerId(ownerId);
             doc.setCategoryId(categoryId);
             doc.setDepartmentId(departmentId);
             doc.setFileType(fileType);

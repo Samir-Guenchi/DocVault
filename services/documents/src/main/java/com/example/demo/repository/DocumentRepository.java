@@ -8,4 +8,5 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     List<Document> findByOwner(String owner);
     List<Document> findByCategoryId(Long categoryId);
     List<Document> findByDepartmentId(Long departmentId);
+    List<Document> findByDepartmentIdIn(List<Long> departmentIds);
 }

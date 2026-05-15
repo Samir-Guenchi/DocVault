@@ -1,4 +1,24 @@
 services:
+  # Auth Service PostgreSQL Database
+  dms-auth-postgres:
+    image: postgres:15-alpine
+    container_name: dms-auth-postgres
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    networks:
+      - dms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: dms-zookeeper
@@ -237,11 +257,34 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       DOCUMENTS_SERVICE_URL: http://documents-service:8081
       COMMENTS_SERVICE_URL: http://comments-service:8082
+      AUTH_SERVICE_URL: http://auth-service:8083
     depends_on:
       - documents-service
       - comments-service
+      - auth-service
     networks:
       - dms-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth
+      dockerfile: Dockerfile
+    container_name: dms-auth-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_HOST: dms-auth-postgres
+      DB_PORT: 5432
+      DB_USER: authuser
+      DB_PASSWORD: authpass
+      JWT_SECRET: dms-secret-key-change-this-in-production-use-256-bit-key-for-security
+    depends_on:
+      dms-auth-postgres:
+        condition: service_healthy
+    networks:
+      - dms-network
+    restart: unless-stopped
 
   dms-ui:
     build:
@@ -261,6 +304,7 @@ networks:
     driver: bridge
 
 volumes:
+  auth-postgres-data:
   postgres-data:
   redis-data:
   minio-data:

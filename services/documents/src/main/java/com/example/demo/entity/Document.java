@@ -20,6 +20,9 @@ public class Document {
 
     private String owner;
 
+    @Column(name = "owner_id")
+    private Long ownerId;
+
     @Column(name = "category_id")
     private Long categoryId;
 
@@ -48,6 +51,8 @@ public class Document {
     public void setCreatedAt(LocalDate c) { this.createdAt = c; }
     public String getOwner() { return owner; }
     public void setOwner(String o) { this.owner = o; }
+    public Long getOwnerId() { return ownerId; }
+    public void setOwnerId(Long o) { this.ownerId = o; }
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long c) { this.categoryId = c; }
     public Long getDepartmentId() { return departmentId; }
