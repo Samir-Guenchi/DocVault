@@ -21,8 +21,17 @@ public class CommentController {
         this.commentService = commentService;
     }
     
+    private String extractAuthHeader(jakarta.servlet.http.HttpServletRequest request) {
+        return request.getHeader("Authorization");
+    }
+    
     @PostMapping
-    public ResponseEntity<Comment> createComment(@RequestBody CommentRequest request) {
+    public ResponseEntity<?> createComment(@RequestBody CommentRequest request, jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String authHeader = extractAuthHeader(httpRequest);
+        if (!commentService.hasAccessToDocument(request.getDocumentId(), authHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to this document");
+        }
+        
         Comment comment = commentService.createComment(
             request.getDocumentId(),
             request.getUserId(),
@@ -33,11 +42,17 @@ public class CommentController {
     }
     
     @GetMapping
-    public ResponseEntity<List<Comment>> getComments(
+    public ResponseEntity<?> getComments(
             @RequestParam(required = false) Long documentId,
-            @RequestParam(required = false) Long userId) {
+            @RequestParam(required = false) Long userId,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        
+        String authHeader = extractAuthHeader(httpRequest);
         
         if (documentId != null) {
+            if (!commentService.hasAccessToDocument(documentId, authHeader)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(List.of());
+            }
             return ResponseEntity.ok(commentService.getCommentsByDocumentId(documentId));
         } else if (userId != null) {
             return ResponseEntity.ok(commentService.getCommentsByUserId(userId));

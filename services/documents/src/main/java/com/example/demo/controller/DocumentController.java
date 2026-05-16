@@ -5,6 +5,7 @@ import com.example.demo.event.DocumentUploadedEvent;
 import com.example.demo.repository.DocumentRepository;
 import com.example.demo.service.DocumentEventPublisher;
 import com.example.demo.service.S3StorageService;
+import com.example.demo.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -25,12 +26,14 @@ public class DocumentController {
     private final DocumentRepository repo;
     private final DocumentEventPublisher eventPublisher;
     private final S3StorageService s3StorageService;
+    private final AuditService auditService;
 
     public DocumentController(DocumentRepository repo, DocumentEventPublisher eventPublisher,
-                              S3StorageService s3StorageService) {
+                              S3StorageService s3StorageService, AuditService auditService) {
         this.repo = repo;
         this.eventPublisher = eventPublisher;
         this.s3StorageService = s3StorageService;
+        this.auditService = auditService;
     }
 
     @GetMapping
@@ -77,6 +80,36 @@ public class DocumentController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/translations")
+    public ResponseEntity<?> getTranslations(@PathVariable Long id, HttpServletRequest request) {
+        @SuppressWarnings("unchecked")
+        List<Integer> userDepartments = (List<Integer>) request.getAttribute("userDepartments");
+        List<String> userRoles = (List<String>) request.getAttribute("userRoles");
+
+        return repo.findById(id).map(doc -> {
+            boolean hasAccess = false;
+            if (userRoles != null && userRoles.contains("admin")) {
+                hasAccess = true;
+            } else if (userDepartments != null && userDepartments.contains(doc.getDepartmentId().intValue())) {
+                hasAccess = true;
+            }
+
+            if (!hasAccess) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied to this document"));
+            }
+
+            String translations = repo.findTranslationsByDocumentId(id);
+            if (translations == null) {
+                return ResponseEntity.ok(Map.of());
+            }
+            // Return raw JSON string as application/json
+            return ResponseEntity.ok()
+                .header("Content-Type", "application/json")
+                .body(translations);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     @CacheEvict(value = "documents", allEntries = true)
     public ResponseEntity<Document> create(@RequestBody Document doc, HttpServletRequest request) {
@@ -95,6 +128,8 @@ public class DocumentController {
         
         if (doc.getCreatedAt() == null) doc.setCreatedAt(LocalDate.now());
         Document saved = repo.save(doc);
+
+        auditService.logEvent("CREATE_DOCUMENT", doc.getOwner(), "Document", saved.getId().toString(), "Document created successfully");
 
         // Publish Kafka event
         publishKafkaEvent(saved);
@@ -153,6 +188,8 @@ public class DocumentController {
 
             Document saved = repo.save(doc);
 
+            auditService.logEvent("UPLOAD_DOCUMENT", doc.getOwner(), "Document", saved.getId().toString(), "Document uploaded with file");
+
             // Publish Kafka event
             publishKafkaEvent(saved);
 
@@ -186,7 +223,11 @@ public class DocumentController {
     @DeleteMapping("/{id}")
     @CacheEvict(value = "documents", key = "#id")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (repo.existsById(id)) { repo.deleteById(id); return ResponseEntity.noContent().build(); }
+        if (repo.existsById(id)) { 
+            repo.deleteById(id); 
+            auditService.logEvent("DELETE_DOCUMENT", "System", "Document", id.toString(), "Document deleted");
+            return ResponseEntity.noContent().build(); 
+        }
         return ResponseEntity.notFound().build();
     }
 

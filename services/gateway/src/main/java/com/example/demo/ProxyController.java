@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -31,6 +33,12 @@ public class ProxyController {
     private String authServiceUrl;
 
     private final RestTemplate restTemplate;
+    
+    // Simple Rate Limiting: 100 requests per minute per IP
+    private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
+    private final Map<String, Long> windowStartTimes = new ConcurrentHashMap<>();
+    private static final int MAX_REQUESTS = 100;
+    private static final long WINDOW_SIZE_MS = 60000;
 
     public ProxyController() {
         // Use HttpComponentsClientHttpRequestFactory to support PATCH method
@@ -85,6 +93,23 @@ public class ProxyController {
     }
 
     private ResponseEntity<?> proxyRequest(HttpServletRequest request, String body, String targetUrl) {
+        String clientIp = request.getRemoteAddr();
+        long now = System.currentTimeMillis();
+        
+        windowStartTimes.putIfAbsent(clientIp, now);
+        if (now - windowStartTimes.get(clientIp) > WINDOW_SIZE_MS) {
+            windowStartTimes.put(clientIp, now);
+            requestCounts.put(clientIp, new AtomicInteger(0));
+        }
+        
+        requestCounts.putIfAbsent(clientIp, new AtomicInteger(0));
+        if (requestCounts.get(clientIp).incrementAndGet() > MAX_REQUESTS) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Too Many Requests");
+            errorResponse.put("message", "Rate limit exceeded. Try again later.");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+        }
+
         try {
             String path = request.getRequestURI();
             String queryString = request.getQueryString();

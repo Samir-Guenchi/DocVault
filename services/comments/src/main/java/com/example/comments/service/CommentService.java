@@ -2,7 +2,13 @@ package com.example.comments.service;
 
 import com.example.comments.entity.Comment;
 import com.example.comments.repository.CommentRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,9 +17,33 @@ import java.util.UUID;
 public class CommentService {
     
     private final CommentRepository commentRepository;
+    private final RestTemplate restTemplate;
+    
+    @Value("${DOCUMENTS_SERVICE_URL:http://localhost:8081}")
+    private String documentsServiceUrl;
     
     public CommentService(CommentRepository commentRepository) {
         this.commentRepository = commentRepository;
+        this.restTemplate = new RestTemplate();
+    }
+    
+    public boolean hasAccessToDocument(Long documentId, String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return false;
+        }
+        
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", authHeader);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            String url = documentsServiceUrl + "/api/documents/" + documentId;
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     public Comment createComment(Long documentId, Long userId, String userName, String text) {

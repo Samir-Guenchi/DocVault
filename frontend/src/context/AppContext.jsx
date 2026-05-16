@@ -173,6 +173,17 @@ export function AppProvider({ children }) {
     }
   };
 
+  /**
+   * Fetch translations for a specific document from the Documents Service
+   */
+  const fetchTranslationsForDocument = async (documentId) => {
+    try {
+      return await fetchJson(`/api/documents/${documentId}/translations`);
+    } catch {
+      return null;
+    }
+  };
+
   const addVersionToDocument = async (documentId, version, note) => {
     await fetchJson(`/api/documents/${documentId}`, {
       method: 'PATCH',
@@ -273,6 +284,7 @@ export function AppProvider({ children }) {
       uploadDocument,
       addCommentToDocument,
       fetchCommentsForDocument,
+      fetchTranslationsForDocument,
       addVersionToDocument,
       createUser,
       updateUser,

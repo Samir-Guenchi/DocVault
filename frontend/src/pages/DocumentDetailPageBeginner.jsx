@@ -9,11 +9,12 @@ import { useAppContext } from '../context/AppContext';
 
 export default function DocumentDetailPageBeginner() {
   const { id } = useParams();
-  const { state, addCommentToDocument, addVersionToDocument, fetchCommentsForDocument } = useAppContext();
+  const { state, addCommentToDocument, addVersionToDocument, fetchCommentsForDocument, fetchTranslationsForDocument } = useAppContext();
   const [commentText, setCommentText] = useState('');
   const [version, setVersion] = useState('');
   const [versionNote, setVersionNote] = useState('');
   const [comments, setComments] = useState([]);
+  const [translations, setTranslations] = useState(null);
   const [loadingComments, setLoadingComments] = useState(true);
 
   const categoryMap = useMemo(
@@ -31,9 +32,18 @@ export default function DocumentDetailPageBeginner() {
   useEffect(() => {
     if (doc) {
       setLoadingComments(true);
-      fetchCommentsForDocument(doc.id)
-        .then(data => setComments(data || []))
-        .catch(() => setComments([]))
+      Promise.all([
+        fetchCommentsForDocument(doc.id),
+        fetchTranslationsForDocument(doc.id)
+      ])
+        .then(([commentsData, translationsData]) => {
+          setComments(commentsData || []);
+          setTranslations(translationsData);
+        })
+        .catch(() => {
+          setComments([]);
+          setTranslations(null);
+        })
         .finally(() => setLoadingComments(false));
     }
   }, [doc?.id]);
@@ -108,8 +118,19 @@ export default function DocumentDetailPageBeginner() {
                 <span className={`badge badge-${sensColor(doc.sensitivity || doc.metadata?.sensitivity)}`}>
                   {doc.sensitivity || doc.metadata?.sensitivity || 'internal'}
                 </span>
+                {translations && <span className="badge badge-success">AI Translated</span>}
               </div>
               <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--s2)' }}>{doc.title}</h1>
+              {translations && translations.fr && (
+                <div style={{ fontSize: 'var(--text-lg)', color: 'var(--g500)', marginBottom: 'var(--s2)', fontStyle: 'italic' }}>
+                  🇫🇷 {translations.fr.title}
+                </div>
+              )}
+              {translations && translations.ar && (
+                <div style={{ fontSize: 'var(--text-lg)', color: 'var(--g500)', marginBottom: 'var(--s2)', fontStyle: 'italic', direction: 'rtl' }}>
+                  🇩🇿 {translations.ar.title}
+                </div>
+              )}
               <p style={{ fontSize: 'var(--text-base)', color: 'var(--g600)', lineHeight: 1.65 }}>{doc.description}</p>
             </div>
           </div>
