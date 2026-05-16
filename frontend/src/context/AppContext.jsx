@@ -53,12 +53,27 @@ export function AppProvider({ children }) {
 
   const loadInitialData = async () => {
     try {
-      const [users, documents, departments, categories] = await Promise.all([
-        fetchJson('/api/users'),
-        fetchJson('/api/documents'),
+      // Load public data (departments and categories don't require auth)
+      const [departments, categories] = await Promise.all([
         fetchJson('/api/departments'),
         fetchJson('/api/categories'),
       ]);
+
+      // Try to load users and documents, but don't fail if they require auth
+      let users = [];
+      let documents = [];
+      
+      try {
+        users = await fetchJson('/auth/users');
+      } catch (e) {
+        console.log('Users endpoint requires authentication');
+      }
+      
+      try {
+        documents = await fetchJson('/api/documents');
+      } catch (e) {
+        console.log('Documents endpoint requires authentication');
+      }
 
       dispatch({
         type: 'SET_BOOTSTRAP_DATA',
@@ -66,7 +81,7 @@ export function AppProvider({ children }) {
       });
       setApiError('');
     } catch (error) {
-      setApiError('Cannot reach API. Start backend: docker-compose -f docker-compose-lab10.yml up');
+      setApiError('Cannot reach API. Ensure all services are running.');
     } finally {
       setIsReady(true);
     }
@@ -76,10 +91,10 @@ export function AppProvider({ children }) {
     loadInitialData();
   }, []);
 
-  // Server-side login via POST /api/users/login
+  // Server-side login via POST /auth/login
   const login = async ({ email, password }) => {
     try {
-      const res = await fetch(`${API_BASE}/api/users/login`, {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -89,7 +104,15 @@ export function AppProvider({ children }) {
         return { ok: false, message: 'Invalid credentials or suspended account.' };
       }
 
-      const user = await res.json();
+      const data = await res.json();
+      // Auth service returns { token, userId, email, role }
+      const user = {
+        id: data.userId,
+        email: data.email,
+        role: data.role,
+        name: data.email.split('@')[0], // Extract name from email
+        token: data.token
+      };
       dispatch({ type: 'LOGIN', payload: user });
       return { ok: true, user };
     } catch {
@@ -194,7 +217,7 @@ export function AppProvider({ children }) {
   };
 
   const createUser = async (payload) => {
-    await fetchJson('/api/users', {
+    await fetchJson('/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -203,7 +226,6 @@ export function AppProvider({ children }) {
         password: payload.password || '123',
         role: payload.role || 'user',
         departmentId: Number(payload.departmentId) || 1,
-        status: 'active',
       }),
     });
     await loadInitialData();

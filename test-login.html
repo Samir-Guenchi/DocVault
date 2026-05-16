@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DocVault Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>DocVault API Test</h1>
+    
+    <h2>Test 1: Check API Health</h2>
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <div id="health-result"></div>
+    
+    <h2>Test 2: Login</h2>
+    <button onclick="testLogin()">Test Login (admin@dms.com / 123)</button>
+    <div id="login-result"></div>
+    
+    <h2>Test 3: Get Users</h2>
+    <button onclick="testUsers()">Test Get Users</button>
+    <div id="users-result"></div>
+    
+    <script>
+        async function testHealth() {
+            const result = document.getElementById('health-result');
+            try {
+                const response = await fetch('http://localhost:8080/auth/health');
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✓ Health check passed!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.innerHTML = `<p class="error">✗ Health check failed: ${error.message}</p>`;
+            }
+        }
+        
+        async function testLogin() {
+            const result = document.getElementById('login-result');
+            try {
+                const response = await fetch('http://localhost:8080/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'admin@dms.com', password: '123' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    result.innerHTML = `<p class="success">✓ Login successful!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    // Store token for next test
+                    window.testToken = data.token;
+                } else {
+                    const error = await response.text();
+                    result.innerHTML = `<p class="error">✗ Login failed (${response.status}): ${error}</p>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">✗ Login failed: ${error.message}</p>`;
+            }
+        }
+        
+        async function testUsers() {
+            const result = document.getElementById('users-result');
+            try {
+                const response = await fetch('http://localhost:8080/auth/users');
+                const data = await response.json();
+                result.innerHTML = `<p class="success">✓ Got users list!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.innerHTML = `<p class="error">✗ Failed to get users: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
