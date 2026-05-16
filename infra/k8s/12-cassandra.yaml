@@ -1,0 +1,112 @@
+# ═══════════════════════════════════════════════════════════
+# Cassandra (Comments Database)
+# ═══════════════════════════════════════════════════════════
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cassandra
+  namespace: docvault
+  labels:
+    app: docvault
+    component: cassandra
+spec:
+  serviceName: cassandra-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docvault
+      component: cassandra
+  template:
+    metadata:
+      labels:
+        app: docvault
+        component: cassandra
+    spec:
+      containers:
+        - name: cassandra
+          image: cassandra:4.1
+          ports:
+            - containerPort: 9042
+              name: cql
+            - containerPort: 7000
+              name: intra-node
+            - containerPort: 7001
+              name: tls-intra-node
+            - containerPort: 7199
+              name: jmx
+          env:
+            - name: CASSANDRA_CLUSTER_NAME
+              value: "dms-cluster"
+            - name: CASSANDRA_DC
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: CASSANDRA_DC
+            - name: CASSANDRA_RACK
+              value: "rack1"
+            - name: CASSANDRA_ENDPOINT_SNITCH
+              value: "GossipingPropertyFileSnitch"
+            - name: HEAP_NEWSIZE
+              value: "128M"
+            - name: MAX_HEAP_SIZE
+              value: "512M"
+          volumeMounts:
+            - name: cassandra-storage
+              mountPath: /var/lib/cassandra
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - nodetool status
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - nodetool status | grep -E "^UN"
+            initialDelaySeconds: 60
+            periodSeconds: 10
+      volumes:
+        - name: cassandra-storage
+          persistentVolumeClaim:
+            claimName: cassandra-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassandra-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: cassandra
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: docvault
+    component: cassandra
+  ports:
+    - port: 9042
+      targetPort: 9042
+      name: cql
+    - port: 7000
+      targetPort: 7000
+      name: intra-node
+    - port: 7001
+      targetPort: 7001
+      name: tls-intra-node
+    - port: 7199
+      targetPort: 7199
+      name: jmx

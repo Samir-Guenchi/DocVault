@@ -27,6 +27,9 @@ public class ProxyController {
     @Value("${COMMENTS_SERVICE_URL:http://localhost:8082}")
     private String commentsServiceUrl;
 
+    @Value("${AUTH_SERVICE_URL:http://localhost:8083}")
+    private String authServiceUrl;
+
     private final RestTemplate restTemplate;
 
     public ProxyController() {
@@ -74,6 +77,11 @@ public class ProxyController {
     @RequestMapping(value = "/api/comments/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
     public ResponseEntity<?> proxyComments(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyRequest(request, body, commentsServiceUrl);
+    }
+
+    @RequestMapping(value = "/auth/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH})
+    public ResponseEntity<?> proxyAuth(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyRequest(request, body, authServiceUrl);
     }
 
     private ResponseEntity<?> proxyRequest(HttpServletRequest request, String body, String targetUrl) {

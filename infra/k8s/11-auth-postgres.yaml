@@ -1,0 +1,98 @@
+# ═══════════════════════════════════════════════════════════
+# PostgreSQL (Auth Database)
+# ═══════════════════════════════════════════════════════════
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: auth-postgres
+  namespace: docvault
+  labels:
+    app: docvault
+    component: auth-database
+spec:
+  serviceName: auth-postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docvault
+      component: auth-database
+  template:
+    metadata:
+      labels:
+        app: docvault
+        component: auth-database
+    spec:
+      containers:
+        - name: auth-postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: AUTH_POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: AUTH_POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dms-secrets
+                  key: AUTH_POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: auth-postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - authuser
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - authuser
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: auth-postgres-storage
+          persistentVolumeClaim:
+            claimName: auth-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-postgres-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: auth-database
+spec:
+  type: ClusterIP
+  selector:
+    app: docvault
+    component: auth-database
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres

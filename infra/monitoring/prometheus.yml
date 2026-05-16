@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'dms-cluster'
+    environment: 'production'
+
+scrape_configs:
+  # Documents Service
+  - job_name: 'documents-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['documents-service:8081']
+        labels:
+          service: 'documents'
+          
+  # Comments Service
+  - job_name: 'comments-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['comments-service:8082']
+        labels:
+          service: 'comments'
+          
+  # Auth Service
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8083']
+        labels:
+          service: 'auth'
+          
+  # Gateway Service
+  - job_name: 'gateway-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway:8080']
+        labels:
+          service: 'gateway'
+          
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

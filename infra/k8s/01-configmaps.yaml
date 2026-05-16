@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dms-config
+  namespace: docvault
+data:
+  # Database Configuration
+  POSTGRES_DB: "dms"
+  POSTGRES_USER: "postgres"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  
+  AUTH_POSTGRES_DB: "authdb"
+  AUTH_POSTGRES_USER: "authuser"
+  AUTH_POSTGRES_HOST: "auth-postgres-service"
+  AUTH_POSTGRES_PORT: "5432"
+  
+  # Cassandra Configuration
+  CASSANDRA_HOST: "cassandra-service"
+  CASSANDRA_PORT: "9042"
+  CASSANDRA_KEYSPACE: "dms"
+  CASSANDRA_DC: "datacenter1"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  KAFKA_TOPIC_DOCUMENTS_UPLOADED: "dms.documents.uploaded"
+  KAFKA_TOPIC_DOCUMENTS_TRANSLATED: "dms.documents.translated"
+  
+  # MinIO Configuration
+  S3_ENDPOINT: "http://minio-service:9000"
+  S3_BUCKET: "dms-documents"
+  
+  # Service URLs
+  DOCUMENTS_SERVICE_URL: "http://documents-service:8081"
+  COMMENTS_SERVICE_URL: "http://comments-service:8082"
+  AUTH_SERVICE_URL: "http://auth-service:8083"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: docvault
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: 'auth-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['auth-service:8083']
+      
+      - job_name: 'documents-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['documents-service:8081']
+      
+      - job_name: 'comments-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['comments-service:8082']
+      
+      - job_name: 'gateway'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway-service:8080']

@@ -6,6 +6,8 @@ import com.example.demo.repository.DocumentRepository;
 import com.example.demo.service.DocumentEventPublisher;
 import com.example.demo.service.S3StorageService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,6 +54,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
+    @Cacheable(value = "documents", key = "#id")
     public ResponseEntity<?> getById(@PathVariable Long id, HttpServletRequest request) {
         @SuppressWarnings("unchecked")
         List<Integer> userDepartments = (List<Integer>) request.getAttribute("userDepartments");
@@ -75,6 +78,7 @@ public class DocumentController {
     }
 
     @PostMapping
+    @CacheEvict(value = "documents", allEntries = true)
     public ResponseEntity<Document> create(@RequestBody Document doc, HttpServletRequest request) {
         // SECURITY: Extract owner from JWT, never trust request body
         Long ownerId = (Long) request.getAttribute("userId");
@@ -103,6 +107,7 @@ public class DocumentController {
      * Accepts multipart form data with file + metadata fields
      */
     @PostMapping("/upload")
+    @CacheEvict(value = "documents", allEntries = true)
     public ResponseEntity<Document> uploadWithFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
@@ -159,6 +164,7 @@ public class DocumentController {
     }
 
     @PatchMapping("/{id}")
+    @CacheEvict(value = "documents", key = "#id")
     public ResponseEntity<Document> patch(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         return repo.findById(id).map(doc -> {
             updates.forEach((k, v) -> {
@@ -178,6 +184,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @CacheEvict(value = "documents", key = "#id")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (repo.existsById(id)) { repo.deleteById(id); return ResponseEntity.noContent().build(); }
         return ResponseEntity.notFound().build();

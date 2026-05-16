@@ -1,0 +1,119 @@
+# ═══════════════════════════════════════════════════════════
+# Comments Service (Cassandra)
+# ═══════════════════════════════════════════════════════════
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comments-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: comments
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: docvault
+      component: comments
+  template:
+    metadata:
+      labels:
+        app: docvault
+        component: comments
+    spec:
+      containers:
+        - name: comments-service
+          image: dms-comments:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "k8s"
+            - name: CASSANDRA_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: CASSANDRA_HOST
+            - name: CASSANDRA_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: CASSANDRA_PORT
+            - name: CASSANDRA_KEYSPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: CASSANDRA_KEYSPACE
+            - name: CASSANDRA_DC
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: CASSANDRA_DC
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comments-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: comments
+spec:
+  type: ClusterIP
+  selector:
+    app: docvault
+    component: comments
+  ports:
+    - port: 8082
+      targetPort: 8082
+      name: http
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: comments-service-hpa
+  namespace: docvault
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: comments-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

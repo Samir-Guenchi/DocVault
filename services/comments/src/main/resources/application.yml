@@ -4,16 +4,28 @@ server:
 spring:
   application:
     name: comments-service
-  datasource:
-    url: jdbc:h2:mem:commentsdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  
+  cassandra:
+    keyspace-name: ${CASSANDRA_KEYSPACE:dms}
+    contact-points: ${CASSANDRA_HOST:localhost}
+    port: ${CASSANDRA_PORT:9042}
+    local-datacenter: ${CASSANDRA_DC:datacenter1}
+    schema-action: create-if-not-exists
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.comments: INFO
+    org.springframework.data.cassandra: INFO

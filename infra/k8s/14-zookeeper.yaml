@@ -1,0 +1,98 @@
+# ═══════════════════════════════════════════════════════════
+# Zookeeper (Kafka Coordination)
+# ═══════════════════════════════════════════════════════════
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: docvault
+  labels:
+    app: docvault
+    component: zookeeper
+spec:
+  serviceName: zookeeper-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docvault
+      component: zookeeper
+  template:
+    metadata:
+      labels:
+        app: docvault
+        component: zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.5.0
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 2888
+              name: follower
+            - containerPort: 3888
+              name: election
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+            - name: ZOOKEEPER_SERVER_ID
+              value: "1"
+          volumeMounts:
+            - name: zookeeper-storage
+              mountPath: /var/lib/zookeeper/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - echo ruok | nc localhost 2181 | grep imok
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - echo ruok | nc localhost 2181 | grep imok
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: zookeeper-storage
+          persistentVolumeClaim:
+            claimName: zookeeper-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: zookeeper
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: docvault
+    component: zookeeper
+  ports:
+    - port: 2181
+      targetPort: 2181
+      name: client
+    - port: 2888
+      targetPort: 2888
+      name: follower
+    - port: 3888
+      targetPort: 3888
+      name: election

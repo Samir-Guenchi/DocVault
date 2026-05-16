@@ -1,0 +1,122 @@
+# ═══════════════════════════════════════════════════════════
+# Auth Service (JWT Authentication)
+# ═══════════════════════════════════════════════════════════
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: docvault
+      component: auth
+  template:
+    metadata:
+      labels:
+        app: docvault
+        component: auth
+    spec:
+      containers:
+        - name: auth-service
+          image: dms-auth:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+              name: http
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: AUTH_POSTGRES_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: AUTH_POSTGRES_PORT
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: dms-config
+                  key: AUTH_POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dms-secrets
+                  key: AUTH_POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: dms-secrets
+                  key: JWT_SECRET
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: docvault
+  labels:
+    app: docvault
+    component: auth
+spec:
+  type: ClusterIP
+  selector:
+    app: docvault
+    component: auth
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: http
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-hpa
+  namespace: docvault
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

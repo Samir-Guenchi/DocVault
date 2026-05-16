@@ -11,21 +11,22 @@ WITH replication = {
 
 USE dms;
 
--- Create comments table with composite primary key
--- Partition key: doc_id (groups all comments for a document)
--- Clustering key: comment_id (orders comments by time, DESC = newest first)
+-- Create comments table with UUID primary key
+-- Optimized for write-heavy workloads with document_id filtering
 CREATE TABLE IF NOT EXISTS comments (
-    doc_id UUID,
-    comment_id TIMEUUID,
-    content TEXT,
-    author TEXT,
-    created_at TIMESTAMP,
-    PRIMARY KEY (doc_id, comment_id)
-) WITH CLUSTERING ORDER BY (comment_id DESC)
-  AND comment = 'Comments table for DMS - optimized for write-heavy workloads';
+    id UUID PRIMARY KEY,
+    document_id BIGINT,
+    user_id BIGINT,
+    user_name TEXT,
+    text TEXT,
+    created_at TIMESTAMP
+) WITH comment = 'Comments table for DMS - optimized for write-heavy workloads';
 
--- Create index on author for queries by author
-CREATE INDEX IF NOT EXISTS idx_comments_author ON comments (author);
+-- Create index on document_id for queries by document
+CREATE INDEX IF NOT EXISTS idx_comments_document_id ON comments (document_id);
+
+-- Create index on user_id for queries by user
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments (user_id);
 
 -- Create activity_logs table for user activity tracking
 CREATE TABLE IF NOT EXISTS activity_logs (
@@ -41,14 +42,14 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   AND comment = 'Activity logs table - write-optimized for user actions';
 
 -- Insert sample comments for testing
-INSERT INTO comments (doc_id, comment_id, content, author, created_at)
-VALUES (550e8400-e29b-41d4-a716-446655440000, now(), 'Great document! Very informative.', 'John Doe', toTimestamp(now()));
+INSERT INTO comments (id, document_id, user_id, user_name, text, created_at)
+VALUES (uuid(), 1, 1, 'John Doe', 'Great document! Very informative.', toTimestamp(now()));
 
-INSERT INTO comments (doc_id, comment_id, content, author, created_at)
-VALUES (550e8400-e29b-41d4-a716-446655440000, now(), 'I have a question about section 3.', 'Jane Smith', toTimestamp(now()));
+INSERT INTO comments (id, document_id, user_id, user_name, text, created_at)
+VALUES (uuid(), 1, 2, 'Jane Smith', 'I have a question about section 3.', toTimestamp(now()));
 
-INSERT INTO comments (doc_id, comment_id, content, author, created_at)
-VALUES (550e8400-e29b-41d4-a716-446655440000, now(), 'Thanks for sharing this!', 'Bob Johnson', toTimestamp(now()));
+INSERT INTO comments (id, document_id, user_id, user_name, text, created_at)
+VALUES (uuid(), 1, 3, 'Bob Johnson', 'Thanks for sharing this!', toTimestamp(now()));
 
 -- Insert sample activity logs
 INSERT INTO activity_logs (user_id, activity_id, action, resource_type, resource_id, timestamp, metadata)
