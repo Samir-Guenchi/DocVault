@@ -35,8 +35,25 @@ function appReducer(state, action) {
   }
 }
 
-async function fetchJson(path, options) {
-  const response = await fetch(`${API_BASE}${path}`, options);
+async function fetchJson(path, options = {}) {
+  const token = localStorage.getItem('token');
+  console.log('fetchJson called for:', path, 'Token present:', !!token);
+  const headers = {
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    console.log('Added Authorization header');
+  } else {
+    console.warn('No token found in localStorage!');
+  }
+  
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+  });
+  
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
   }
@@ -105,14 +122,25 @@ export function AppProvider({ children }) {
       }
 
       const data = await res.json();
-      // Auth service returns { token, userId, email, role }
+      // Auth service returns { token, user: { id, email, name, roles: [...], departments: [...] } }
+      const userRole = data.user.roles && data.user.roles.length > 0 
+        ? data.user.roles[0].role.toLowerCase() 
+        : 'user';
+      
       const user = {
-        id: data.userId,
-        email: data.email,
-        role: data.role,
-        name: data.email.split('@')[0], // Extract name from email
-        token: data.token
+        id: data.user.id,
+        email: data.user.email,
+        role: userRole,
+        name: data.user.name || data.user.email.split('@')[0],
+        token: data.token,
+        departments: data.user.departments || []
       };
+      
+      // Store token in localStorage for API requests
+      console.log('Storing token in localStorage:', data.token.substring(0, 20) + '...');
+      localStorage.setItem('token', data.token);
+      console.log('Token stored. Verify in DevTools: Application > Local Storage');
+      
       dispatch({ type: 'LOGIN', payload: user });
       return { ok: true, user };
     } catch {
@@ -120,7 +148,10 @@ export function AppProvider({ children }) {
     }
   };
 
-  const logout = () => dispatch({ type: 'LOGOUT' });
+  const logout = () => {
+    localStorage.removeItem('token');
+    dispatch({ type: 'LOGOUT' });
+  };
 
   /**
    * Upload document — supports both metadata-only and file upload to S3
@@ -128,6 +159,9 @@ export function AppProvider({ children }) {
    * Otherwise, sends JSON metadata to /api/documents
    */
   const uploadDocument = async (payload, file) => {
+    const token = localStorage.getItem('token');
+    console.log('uploadDocument called. Token present:', !!token);
+    
     if (file) {
       // Multipart upload with file → S3
       const formData = new FormData();
@@ -139,8 +173,17 @@ export function AppProvider({ children }) {
       formData.append('owner', state.user?.name || 'Unknown');
       formData.append('sensitivity', payload.sensitivity || 'internal');
 
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('Added Authorization header to upload request');
+      } else {
+        console.error('NO TOKEN FOUND! Upload will fail with 403');
+      }
+
       const response = await fetch(`${API_BASE}/api/documents/upload`, {
         method: 'POST',
+        headers,
         body: formData,
       });
 
@@ -179,7 +222,8 @@ export function AppProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         documentId: Number(documentId),
-        user: state.user?.name || 'Anonymous',
+        userId: state.user?.id || null,
+        userName: state.user?.name || 'Anonymous',
         text,
       }),
     });
@@ -243,13 +287,18 @@ export function AppProvider({ children }) {
   const suspendUsers = async (userIds) => {
     await Promise.all(
       userIds.map((id) =>
-        fetchJson(`/api/users/${id}`, {
+        fetchJson(`/auth/admin/users/${id}/suspend`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'suspended' }),
         })
       )
     );
+    await loadInitialData();
+  };
+
+  const deleteUser = async (userId) => {
+    await fetchJson(`/auth/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
     await loadInitialData();
   };
 
@@ -311,6 +360,7 @@ export function AppProvider({ children }) {
       createUser,
       updateUser,
       suspendUsers,
+      deleteUser,
       importUsersFromCsvRows,
       assignDepartment,
       addCategory,

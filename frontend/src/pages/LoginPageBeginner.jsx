@@ -38,7 +38,8 @@ export default function LoginPageBeginner() {
 
     const result = await login({ email: em, password: pw });
     if (!result.ok) { setError(result.message); setLoading(false); return; }
-    navigate(result.user.role === 'admin' ? '/dashboard/admin' : '/dashboard/user');
+    const userRole = result.user.role?.toLowerCase();
+    navigate(userRole === 'admin' ? '/dashboard/admin' : '/dashboard/user');
   };
 
   const quickLogin = (em, pw) => {

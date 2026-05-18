@@ -142,4 +142,21 @@ public class AuthService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+    
+    @Transactional
+    public User suspendUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        user.setStatus("suspended");
+        return userRepository.save(user);
+    }
+    
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        userRepository.delete(user);
+    }
 }

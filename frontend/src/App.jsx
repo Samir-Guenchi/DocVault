@@ -5,6 +5,8 @@ import LoginPageBeginner from './pages/LoginPageBeginner';
 import UserDashboardBeginner from './pages/UserDashboardBeginner';
 import DocumentDetailPageBeginner from './pages/DocumentDetailPageBeginner';
 import AdminDashboardBeginner from './pages/AdminDashboardBeginner';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
 import ExportPage from './pages/ExportPage';
 import AdminExportPage from './pages/AdminExportPage';
 import DocumentToolsPage from './pages/DocumentToolsPage';
@@ -79,7 +81,15 @@ function App() {
         path="/dashboard/admin/users"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminDashboardBeginner />
+            <AdminUsersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/admin/settings"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminSettingsPage />
           </ProtectedRoute>
         }
       />

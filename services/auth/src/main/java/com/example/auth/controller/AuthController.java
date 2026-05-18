@@ -100,6 +100,28 @@ public class AuthController {
         }
     }
     
+    @PatchMapping("/admin/users/{userId}/suspend")
+    public ResponseEntity<?> suspendUser(@PathVariable Long userId) {
+        try {
+            User user = authService.suspendUser(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/admin/users/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+        try {
+            authService.deleteUser(userId);
+            return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "UP", "service", "auth-service"));

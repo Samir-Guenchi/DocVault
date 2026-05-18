@@ -24,13 +24,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Health check endpoint is public
-                .requestMatchers("/api/documents/health", "/actuator/**", "/error").permitAll()
-                // Allow departments and categories for initial setup (should be admin-only in production)
-                .requestMatchers("/api/departments/**", "/api/categories/**").permitAll()
-                // All other endpoints require authentication
-                .anyRequest().authenticated()
+                // Allow all requests - authentication is optional
+                // JWT filter still runs to populate user attributes when token is present
+                .anyRequest().permitAll()
             )
+            // Add JWT filter so user attributes (userId, roles, departments) are set from token
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

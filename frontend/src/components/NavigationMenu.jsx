@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   FileText, Home, Search, LogOut, Menu, X, Download, BarChart3,
-  Users, FolderOpen, Wrench
+  Users, FolderOpen, Wrench, Settings
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
@@ -27,7 +27,7 @@ export default function NavigationMenu({ userRole = 'user' }) {
   const adminMenuItems = [
     { path: '/dashboard/admin', icon: BarChart3, label: 'Overview' },
     { path: '/dashboard/admin/users', icon: Users, label: 'Users' },
-    { path: '/dashboard/admin/categories', icon: FolderOpen, label: 'Categories' },
+    { path: '/dashboard/admin/settings', icon: Settings, label: 'Settings' },
     { path: '/dashboard/admin/reports', icon: BarChart3, label: 'Reports' },
     { path: '/dashboard/admin/export', icon: Download, label: 'Export' },
     { path: '/dashboard/admin/tools', icon: Wrench, label: 'Tools' },

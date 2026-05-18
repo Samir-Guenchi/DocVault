@@ -8,6 +8,7 @@ import NavigationMenu from '../components/NavigationMenu';
 import { useAppContext } from '../context/AppContext';
 
 export default function UserDashboardBeginner() {
+  // Version: 2.0 - With JWT Authentication
   const { state, uploadDocument } = useAppContext();
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState('all');
@@ -22,15 +23,24 @@ export default function UserDashboardBeginner() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const userDeptIds = state.user?.departments?.map(ud => ud.departmentId) || [];
     return state.documents.filter(d => {
+      // Only show documents from user's departments
+      const inUserDept = userDeptIds.length === 0 || userDeptIds.includes(d.departmentId);
       const mq = !q || (d.title || '').toLowerCase().includes(q) || (d.description || '').toLowerCase().includes(q);
       const mc = catFilter === 'all' || Number(catFilter) === Number(d.categoryId);
       const md = deptFilter === 'all' || Number(deptFilter) === Number(d.departmentId);
-      return mq && mc && md;
+      return inUserDept && mq && mc && md;
     });
-  }, [state.documents, query, catFilter, deptFilter]);
+  }, [state.documents, query, catFilter, deptFilter, state.user]);
 
-  const myDocs = useMemo(() => state.documents.filter(d => d.owner === state.user?.email), [state.documents, state.user]);
+  const myDocs = useMemo(() => {
+    const userDeptIds = state.user?.departments?.map(ud => ud.departmentId) || [];
+    return state.documents.filter(d => {
+      const inUserDept = userDeptIds.length === 0 || userDeptIds.includes(d.departmentId);
+      return d.owner === state.user?.email && inUserDept;
+    });
+  }, [state.documents, state.user]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -232,8 +242,15 @@ export default function UserDashboardBeginner() {
                   <label className="form-label form-label-required"><Building2 size={15} /> Department</label>
                   <select className="form-select" value={form.departmentId} onChange={e => setForm({ ...form, departmentId: e.target.value })} required>
                     <option value="">Select department</option>
-                    {state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {state.departments
+                      .filter(d => state.user?.departments?.some(ud => ud.departmentId === d.id))
+                      .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
+                  {state.user?.departments?.length === 0 && (
+                    <small style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                      You are not assigned to any department. Contact admin to assign you to a department.
+                    </small>
+                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div className="form-group">
